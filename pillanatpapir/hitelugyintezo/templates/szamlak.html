@@ -1,0 +1,533 @@
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Számláim – {{ projekt.nev }}</title>
+    <style>
+        :root {
+            --bg: #f3f5f9; --card: #fff; --text: #1f2937; --muted: #4b5563;
+            --accent: #1d4ed8; --border: #d1d5db; --soft: #f9fafb; --danger: #b91c1c;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.45; }
+        h1 { margin: 0 0 16px; font-size: 1.6rem; }
+        h2 { margin: 0; }
+        h3 { margin: 22px 0 8px; font-size: 1.05rem; }
+
+        /* Akadálymentesség */
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .skip { position: absolute; left: -999px; top: 8px; background: #000; color: #fff; padding: 10px 14px; border-radius: 8px; z-index: 100; }
+        .skip:focus { left: 8px; }
+        :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+        button, select, input, summary { min-height: 40px; }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+        .msg { padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: .95rem; }
+        .msg.success { background: #dcfce7; color: #14532d; }
+        .msg.error { background: #fee2e2; color: #7f1d1d; }
+
+        .btn { border: 1px solid var(--border); background: var(--card); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: .9rem; color: var(--text); font-family: inherit; }
+        .btn:hover { background: var(--soft); }
+        .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-primary:hover { background: #1e40af; }
+        .btn-danger { color: var(--danger); border-color: #fca5a5; }
+        .btn-sm { padding: 5px 10px; font-size: .85rem; min-height: 36px; }
+
+        /* Teljes projekt összesítő */
+        .summary { background: var(--card); border-radius: 18px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 26px; }
+        .summary h2 { font-size: 1.2rem; margin-bottom: 14px; }
+        .total-line { display: flex; gap: 6px 24px; flex-wrap: wrap; margin-bottom: 8px; }
+        .total-line div { font-size: .9rem; color: var(--muted); }
+        .total-line strong { display: block; font-size: 1.35rem; color: var(--text); }
+        .alloc { margin-top: 12px; padding: 10px 12px; background: var(--soft); border-radius: 10px; font-size: .92rem; }
+        .alloc.warn { background: #fef3c7; color: #78350f; }
+        .keret-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 14px; }
+        .keret-form label { font-size: .85rem; color: var(--muted); }
+        .keret-form input { display: block; margin-top: 3px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; width: 180px; font-family: inherit; }
+
+        /* Zseb kártyák */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+        .pocket { display: flex; align-items: center; gap: 16px; text-align: left; background: var(--card); border: none; border-radius: 16px; padding: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-top: 6px solid var(--c, var(--accent)); font-family: inherit; color: var(--text); transition: transform .15s, box-shadow .15s; }
+        .pocket:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+        .pocket h3 { margin: 0 0 4px; font-size: 1.1rem; }
+        .pocket p { margin: 0; font-size: .92rem; }
+        .pocket small { color: var(--muted); }
+        .pocket.new { border-top: 2px dashed #6b7280; justify-content: center; color: var(--muted); font-size: 1rem; min-height: 110px; background: transparent; box-shadow: none; }
+        .badge-over { display: inline-block; background: #fee2e2; color: #7f1d1d; border-radius: 999px; padding: 1px 8px; font-size: .75rem; font-weight: 700; margin-top: 4px; }
+
+        /* Kördiagram */
+        .donut { position: relative; flex: none; }
+        .donut svg { width: 100%; display: block; }
+        .donut .ring { stroke: #e5e7eb; }
+        .donut.mini { width: 84px; }
+        .donut.big { width: 190px; }
+        .donut.huge { width: 230px; }
+        .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .donut-center strong { font-size: 1.1rem; }
+        .donut.big .donut-center strong { font-size: 1.9rem; }
+        .donut.huge .donut-center strong { font-size: 2.4rem; }
+        .donut-center span { font-size: .75rem; color: var(--muted); }
+        .over .donut-center strong { color: var(--danger); }
+
+        .overview { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+        .overview-text { flex: 1 1 260px; min-width: 0; }
+        .legend { list-style: none; margin: 0; padding: 0; }
+        .legend li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
+        .legend li b { margin-left: auto; }
+        .legend i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; }
+        .budget-line { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+        .budget-line.over { color: var(--danger); font-weight: 700; }
+
+        /* Felugró ablak */
+        dialog { border: none; border-radius: 20px; padding: 0; width: min(680px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); background: var(--card); color: var(--text); }
+        dialog::backdrop { background: rgba(15,23,42,.6); }
+        .dlg { max-height: 92vh; overflow-y: auto; }
+        .dlg-head { background: var(--c, var(--accent)); color: #fff; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2; }
+        .dlg-head h2 { font-size: 1.25rem; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+        .dlg-head button { background: rgba(0,0,0,.3); border: 2px solid #fff; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
+        .dlg-body { padding: 22px; }
+
+        /* Számlák */
+        .sz { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+        .sz-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; flex-wrap: wrap; }
+        .sz-main { flex: 1 1 180px; min-width: 0; }
+        .sz-main strong { display: block; }
+        .sz-main small { color: var(--muted); }
+        .amount { font-weight: 700; white-space: nowrap; }
+        .sz-detail { background: var(--soft); padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
+        .sz-detail strong { color: var(--text); font-weight: 500; display: block; }
+        .sz-actions { display: flex; gap: 8px; padding: 10px 14px; background: var(--soft); border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+        .sz-actions form { margin: 0; display: flex; gap: 6px; align-items: center; }
+        .sz-edit { display: none; padding: 14px; background: var(--soft); }
+        .sz.editing .sz-view { display: none; }
+        .sz.editing .sz-edit { display: block; }
+        .status-form { margin: 0; }
+        select.pill, .sz-actions select { border: 1.5px solid #6b7280; background: #fff; border-radius: 999px; padding: 5px 10px; font-size: .85rem; font-family: inherit; cursor: pointer; }
+        select[data-s] { font-weight: 700; }
+        select[data-s="fizetve"] { border-color: #15803d; color: #14532d; }
+        select[data-s="feldolgozas"] { border-color: #b45309; color: #78350f; }
+        select[data-s="folyamatban"] { border-color: #1d4ed8; color: #1e3a8a; }
+
+        /* Űrlapok */
+        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+        .fields label { font-size: .85rem; color: var(--muted); display: block; }
+        .fields input, .fields select { width: 100%; margin-top: 3px; padding: 8px 10px; border: 1px solid #6b7280; border-radius: 8px; font-size: .95rem; background: #fff; font-family: inherit; }
+        .fields .full { grid-column: 1 / -1; }
+        .fields input[type=color] { padding: 2px; }
+        .form-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+        details.box { border: 1px solid var(--border); border-radius: 12px; margin-top: 14px; }
+        details.box > summary { cursor: pointer; padding: 12px 14px; font-weight: 600; list-style: none; }
+        details.box > summary::-webkit-details-marker { display: none; }
+        details.box > summary::before { content: "▸ "; }
+        details.box[open] > summary::before { content: "▾ "; }
+        details.box[open] > summary { border-bottom: 1px solid var(--border); }
+        details.box > .inner { padding: 14px; }
+
+        /* Aktiválható munkafolyamatok */
+        .presets { margin-top: 28px; }
+        .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+        .preset { background: var(--card); border: 1px dashed #6b7280; border-top: 5px solid var(--c); border-radius: 14px; padding: 14px; }
+        .preset strong { display: block; margin-bottom: 8px; }
+        .preset form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+        .preset label { font-size: .8rem; color: var(--muted); flex: 1 1 110px; }
+        .preset input { width: 100%; margin-top: 2px; padding: 7px 9px; border: 1px solid #6b7280; border-radius: 8px; font-family: inherit; font-size: .9rem; }
+
+        .empty { color: var(--muted); font-size: .92rem; padding: 8px 0; }
+        .unassigned { margin-top: 32px; }
+        .unassigned .sz-row form { display: flex; gap: 6px; margin: 0; }
+        @media (max-width: 480px) { .fields, .sz-detail { grid-template-columns: 1fr; } body { padding: 14px; } }
+    </style>
+</head>
+<body>
+    <a class="skip" href="#fo-tartalom">Ugrás a tartalomra</a>
+
+    <main id="fo-tartalom">
+        <h1>{{ projekt.nev }}</h1>
+
+        <div role="status" aria-live="polite">
+            {% for message in messages %}
+            <div class="msg {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- Teljes projekt: mindig látható -->
+        <section class="summary" aria-labelledby="osszkep-cim">
+            <h2 id="osszkep-cim">Teljes projekt</h2>
+            <div class="overview {% if ossz.tullepve %}over{% endif %}">
+                <div class="donut huge" role="img"
+                     aria-label="Összes keret {{ projekt.osszkeret|floatformat:'0g' }} forint. Felhasználva {{ ossz.szazalek }} százalék, ebből kifizetve {{ ossz.fizetve_szazalek }} százalék.">
+                    <svg viewBox="0 0 42 42" aria-hidden="true">
+                        <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
+                        {% for r in ossz.reszek %}{% if r.hossz != "0.00" %}
+                        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="{{ r.szin }}" stroke-width="4"
+                                stroke-dasharray="{{ r.hossz }} 100" stroke-dashoffset="{{ r.offset }}" transform="rotate(-90 21 21)"/>
+                        {% endif %}{% endfor %}
+                    </svg>
+                    <div class="donut-center" aria-hidden="true">
+                        <strong>{{ ossz.szazalek }}%</strong>
+                        <span>a teljes keretből</span>
+                    </div>
+                </div>
+
+                <div class="overview-text">
+                    <div class="total-line">
+                        <div>Összes keret<strong>{{ projekt.osszkeret|floatformat:"0g" }} Ft</strong></div>
+                        <div>Felhasználva<strong>{{ ossz.osszes|floatformat:"0g" }} Ft</strong></div>
+                        <div>Kifizetve<strong>{{ ossz.fizetve_szazalek }}%</strong></div>
+                    </div>
+
+                    <ul class="legend">
+                        {% for r in ossz.reszek %}
+                        <li><i style="background: {{ r.szin }}" aria-hidden="true"></i>{{ r.nev }} ({{ r.szazalek }}%)<b>{{ r.osszeg|floatformat:"0g" }} Ft</b></li>
+                        {% endfor %}
+                    </ul>
+
+                    {% if ossz.tullepve %}
+                    <div class="budget-line over">Az összes keretet túllépted: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
+                    {% else %}
+                    <div class="budget-line">Hátralévő keret: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
+                    {% endif %}
+
+                    <div class="alloc {% if ossz.tulosztva %}warn{% endif %}">
+                        Zsebekbe osztva: <strong>{{ ossz.zsebekbe_osztva|floatformat:"0g" }} Ft</strong>
+                        {% if ossz.tulosztva %}
+                        – ez {{ ossz.szabad_abs|floatformat:"0g" }} Ft-tal több az összes keretnél.
+                        {% else %}
+                        – még nem osztott keret: {{ ossz.szabad_abs|floatformat:"0g" }} Ft.
+                        {% endif %}
+                    </div>
+
+                    <form class="keret-form" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="osszkeret_mentes">
+                        <label>Összes keret módosítása (Ft)
+                            <input type="number" min="0" name="osszkeret" value="{{ projekt.osszkeret|unlocalize }}" required>
+                        </label>
+                        <button type="submit" class="btn btn-primary">Mentés</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Aktív zsebek -->
+        <section aria-labelledby="zsebek-cim">
+            <h2 id="zsebek-cim" style="margin-bottom:12px;font-size:1.2rem">Munkafolyamatok</h2>
+            <div class="grid">
+                {% for z in zsebek %}
+                <button type="button" class="pocket {% if z.tullepve %}over{% endif %}" style="--c: {{ z.zseb.szin }}"
+                        data-open="zseb-{{ z.zseb.pk }}" aria-haspopup="dialog"
+                        aria-label="{{ z.zseb.nev }}: {{ z.szazalek }} százalék felhasználva a {{ z.keret|floatformat:'0g' }} forintos keretből{% if z.tullepve %}, túllépve{% endif %}. Részletek megnyitása.">
+                    <span class="donut mini" aria-hidden="true">
+                        <svg viewBox="0 0 42 42">
+                            <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
+                            {% for r in z.reszek %}{% if r.hossz != "0.00" %}
+                            <circle cx="21" cy="21" r="15.9155" fill="none" stroke="{{ r.szin }}" stroke-width="4"
+                                    stroke-dasharray="{{ r.hossz }} 100" stroke-dashoffset="{{ r.offset }}" transform="rotate(-90 21 21)"/>
+                            {% endif %}{% endfor %}
+                        </svg>
+                        <span class="donut-center"><strong>{{ z.szazalek }}%</strong></span>
+                    </span>
+                    <span>
+                        <h3>{{ z.zseb.nev }}</h3>
+                        <p>{{ z.osszes|floatformat:"0g" }} / {{ z.keret|floatformat:"0g" }} Ft</p>
+                        <small>{{ z.szamlak|length }} számla</small>
+                        {% if z.tullepve %}<br><span class="badge-over">Túllépve</span>{% endif %}
+                    </span>
+                </button>
+                {% endfor %}
+
+                <button type="button" class="pocket new" data-open="uj-zseb" aria-haspopup="dialog">+ Egyedi zseb létrehozása</button>
+            </div>
+        </section>
+
+        <!-- Aktiválható alap munkafolyamatok -->
+        {% if inaktiv %}
+        <section class="presets" aria-labelledby="preset-cim">
+            <details class="box" open>
+                <summary id="preset-cim">További házfelújítási munkafolyamatok aktiválása ({{ inaktiv|length }})</summary>
+                <div class="inner">
+                    <p class="empty" style="margin-top:0">Aktiváláskor beállíthatod a keretet. A javasolt összegek együtt kiadják a 10 millió forintot.</p>
+                    <div class="preset-grid">
+                        {% for p in inaktiv %}
+                        <div class="preset" style="--c: {{ p.szin }}">
+                            <strong>{{ p.nev }}</strong>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="aktival">
+                                <input type="hidden" name="pk" value="{{ p.pk }}">
+                                <label>Keret (Ft)
+                                    <input type="number" min="0" name="keret" value="{{ p.keret|unlocalize }}" required>
+                                </label>
+                                <button type="submit" class="btn btn-primary btn-sm" aria-label="{{ p.nev }} aktiválása">Aktiválás</button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+        </section>
+        {% endif %}
+
+        <!-- Besorolatlan számlák -->
+        {% if besorolatlan %}
+        <section class="unassigned" aria-labelledby="bes-cim">
+            <h3 id="bes-cim">Besorolatlan számlák ({{ besorolatlan|length }})</h3>
+            <p class="empty">Ezek a teljes projekt összegébe beleszámítanak, de egyik zsebbe sem tartoznak.</p>
+            {% for sz in besorolatlan %}
+            <div class="sz">
+                <div class="sz-row">
+                    <div class="sz-main">
+                        <strong>{{ sz.szamla_szama }}</strong>
+                        <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
+                    </div>
+                    <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="athelyez">
+                        <input type="hidden" name="pk" value="{{ sz.pk }}">
+                        <select name="zseb" required aria-label="Zseb kiválasztása a(z) {{ sz.szamla_szama }} számlához" class="pill">
+                            <option value="">Zsebbe…</option>
+                            {% for zs in zseb_lista %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">Áthelyez</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Részletes nézetek: egy aktív zseb = egy felugró ablak -->
+    {% for z in zsebek %}
+    <dialog id="zseb-{{ z.zseb.pk }}" aria-labelledby="zseb-cim-{{ z.zseb.pk }}">
+        <div class="dlg" style="--c: {{ z.zseb.szin }}">
+            <div class="dlg-head">
+                <h2 id="zseb-cim-{{ z.zseb.pk }}">{{ z.zseb.nev }}</h2>
+                <button type="button" data-close aria-label="Bezárás">✕</button>
+            </div>
+            <div class="dlg-body">
+
+                <div class="overview {% if z.tullepve %}over{% endif %}">
+                    <div class="donut big" role="img"
+                         aria-label="{{ z.zseb.nev }}: {{ z.szazalek }} százalék felhasználva a {{ z.keret|floatformat:'0g' }} forintos keretből, ebből kifizetve {{ z.fizetve_szazalek }} százalék.">
+                        <svg viewBox="0 0 42 42" aria-hidden="true">
+                            <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
+                            {% for r in z.reszek %}{% if r.hossz != "0.00" %}
+                            <circle cx="21" cy="21" r="15.9155" fill="none" stroke="{{ r.szin }}" stroke-width="4"
+                                    stroke-dasharray="{{ r.hossz }} 100" stroke-dashoffset="{{ r.offset }}" transform="rotate(-90 21 21)"/>
+                            {% endif %}{% endfor %}
+                        </svg>
+                        <div class="donut-center" aria-hidden="true">
+                            <strong>{{ z.szazalek }}%</strong>
+                            <span>a keretből</span>
+                        </div>
+                    </div>
+                    <div class="overview-text">
+                        <ul class="legend">
+                            {% for r in z.reszek %}
+                            <li><i style="background: {{ r.szin }}" aria-hidden="true"></i>{{ r.nev }}<b>{{ r.osszeg|floatformat:"0g" }} Ft</b></li>
+                            {% endfor %}
+                            <li><i style="background:#e5e7eb;border:1px solid #9ca3af" aria-hidden="true"></i>Keret<b>{{ z.keret|floatformat:"0g" }} Ft</b></li>
+                        </ul>
+                        {% if z.tullepve %}
+                        <div class="budget-line over">Túllépve: {{ z.kulonbseg|floatformat:"0g" }} Ft</div>
+                        {% else %}
+                        <div class="budget-line">Hátralévő keret: {{ z.kulonbseg|floatformat:"0g" }} Ft</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <details class="box">
+                    <summary>Új számla felvétele</summary>
+                    <div class="inner">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="uj_szamla">
+                            <input type="hidden" name="zseb" value="{{ z.zseb.pk }}">
+                            <div class="fields">
+                                <label>Számlaszám <input name="szamla_szama" required></label>
+                                <label>Azonosító <input name="szamla_azonosito"></label>
+                                <label class="full">Kivitelező <input name="kivitelezo" required></label>
+                                <label>Kelte <input type="date" name="szamla_kelte" value="{% now 'Y-m-d' %}"></label>
+                                <label>Adószám <input name="adoszam"></label>
+                                <label>ÁFA <input name="afa"></label>
+                                <label>Bruttó összeg (Ft) <input type="number" step="any" min="0" name="szamla_brutto_osszege" required></label>
+                                <label class="full">Állapot
+                                    <select name="statusz">
+                                        {% for k, n in statuszok %}<option value="{{ k }}">{{ n }}</option>{% endfor %}
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="form-actions"><button type="submit" class="btn btn-primary">Számla mentése</button></div>
+                        </form>
+                    </div>
+                </details>
+
+                <h3>Számlák ({{ z.szamlak|length }})</h3>
+                {% for sz in z.szamlak %}
+                <div class="sz">
+                    <div class="sz-view">
+                        <div class="sz-row">
+                            <div class="sz-main">
+                                <strong>{{ sz.szamla_szama }}</strong>
+                                <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
+                            </div>
+                            <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
+                            <form method="post" class="status-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="statusz">
+                                <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                <select name="statusz" class="pill" data-s="{{ sz.statusz }}"
+                                        aria-label="A(z) {{ sz.szamla_szama }} számla állapota" onchange="this.form.submit()">
+                                    {% for k, n in statuszok %}
+                                    <option value="{{ k }}" {% if k == sz.statusz %}selected{% endif %}>{{ n }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </div>
+                        <div class="sz-detail">
+                            <span>Azonosító <strong>{{ sz.szamla_azonosito|default:"–" }}</strong></span>
+                            <span>Adószám <strong>{{ sz.adoszam|default:"–" }}</strong></span>
+                            <span>ÁFA <strong>{{ sz.afa|default:"–" }}</strong></span>
+                            <span>Kelte <strong>{{ sz.szamla_kelte }}</strong></span>
+                        </div>
+                        <div class="sz-actions">
+                            <button type="button" class="btn btn-sm" data-szerk>Szerkesztés</button>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="athelyez">
+                                <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                <select name="zseb" aria-label="A(z) {{ sz.szamla_szama }} számla áthelyezése másik zsebbe" onchange="this.form.submit()">
+                                    <option value="">Áthelyezés…</option>
+                                    {% for zs in zseb_lista %}{% if zs.pk != z.zseb.pk %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endif %}{% endfor %}
+                                    <option value="">Besorolatlan</option>
+                                </select>
+                            </form>
+                            <form method="post" data-confirm="Biztosan törlöd a(z) {{ sz.szamla_szama }} számlát?">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="szamla_torles">
+                                <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Törlés</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <form class="sz-edit" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="szamla_mentes">
+                        <input type="hidden" name="pk" value="{{ sz.pk }}">
+                        <div class="fields">
+                            <label>Számlaszám <input name="szamla_szama" value="{{ sz.szamla_szama }}" required></label>
+                            <label>Azonosító <input name="szamla_azonosito" value="{{ sz.szamla_azonosito }}"></label>
+                            <label class="full">Kivitelező <input name="kivitelezo" value="{{ sz.kivitelezo }}" required></label>
+                            <label>Kelte <input type="date" name="szamla_kelte" value="{{ sz.szamla_kelte|date:'Y-m-d' }}"></label>
+                            <label>Adószám <input name="adoszam" value="{{ sz.adoszam }}"></label>
+                            <label>ÁFA <input name="afa" value="{{ sz.afa }}"></label>
+                            <label>Bruttó összeg (Ft) <input type="number" step="any" min="0" name="szamla_brutto_osszege" value="{{ sz.szamla_brutto_osszege|unlocalize }}" required></label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-sm">Mentés</button>
+                            <button type="button" class="btn btn-sm" data-megse>Mégse</button>
+                        </div>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="empty">Ebben a zsebben még nincs számla.</p>
+                {% endfor %}
+
+                <details class="box">
+                    <summary>Zseb beállításai</summary>
+                    <div class="inner">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="zseb_mentes">
+                            <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
+                            <div class="fields">
+                                <label>Név <input name="nev" value="{{ z.zseb.nev }}" required></label>
+                                <label>Keret (Ft) <input type="number" min="0" name="keret" value="{{ z.zseb.keret|unlocalize }}" required></label>
+                                <label>Szín <input type="color" name="szin" value="{{ z.zseb.szin }}"></label>
+                            </div>
+                            <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">Mentés</button></div>
+                        </form>
+
+                        <div class="form-actions" style="margin-top:18px">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="deaktival">
+                                <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
+                                <button type="submit" class="btn btn-sm">Zseb deaktiválása</button>
+                            </form>
+                            <form method="post" data-confirm="Biztosan törlöd a(z) {{ z.zseb.nev }} zsebet? A számlák megmaradnak, de besorolatlanok lesznek.">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="zseb_torles">
+                                <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Zseb törlése</button>
+                            </form>
+                        </div>
+                        <p class="empty">A deaktiválás csak üres zsebnél lehetséges, a zseb később újra aktiválható.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </dialog>
+    {% endfor %}
+
+    <!-- Egyedi zseb -->
+    <dialog id="uj-zseb" aria-labelledby="uj-zseb-cim">
+        <div class="dlg">
+            <div class="dlg-head">
+                <h2 id="uj-zseb-cim">Egyedi zseb</h2>
+                <button type="button" data-close aria-label="Bezárás">✕</button>
+            </div>
+            <div class="dlg-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="uj_zseb">
+                    <div class="fields">
+                        <label class="full">Név <input name="nev" required></label>
+                        <label>Keret (Ft) <input type="number" min="0" name="keret" value="100000" required></label>
+                        <label>Szín <input type="color" name="szin" value="#1d4ed8"></label>
+                    </div>
+                    <div class="form-actions"><button type="submit" class="btn btn-primary">Zseb létrehozása</button></div>
+                </form>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        // Felugró ablakok (a <dialog> kezeli az Esc-et és a fókuszcsapdát)
+        document.querySelectorAll("[data-open]").forEach(el =>
+            el.addEventListener("click", () => document.getElementById(el.dataset.open).showModal()));
+        document.querySelectorAll("[data-close]").forEach(b =>
+            b.addEventListener("click", () => b.closest("dialog").close()));
+        document.querySelectorAll("dialog").forEach(d =>
+            d.addEventListener("click", e => { if (e.target === d) d.close(); }));
+
+        // Számla szerkesztése a helyén, a fókusz az első mezőre kerül
+        document.querySelectorAll("[data-szerk]").forEach(b =>
+            b.addEventListener("click", () => {
+                const sz = b.closest(".sz");
+                sz.classList.add("editing");
+                sz.querySelector(".sz-edit input:not([type=hidden])").focus();
+            }));
+        document.querySelectorAll("[data-megse]").forEach(b =>
+            b.addEventListener("click", () => b.closest(".sz").classList.remove("editing")));
+
+        // Megerősítés törlés előtt
+        document.querySelectorAll("form[data-confirm]").forEach(f =>
+            f.addEventListener("submit", e => { if (!confirm(f.dataset.confirm)) e.preventDefault(); }));
+
+        // Mentés után ugyanaz a zseb nyílik újra (?zseb=ID)
+        const zsebId = new URLSearchParams(location.search).get("zseb");
+        if (zsebId) {
+            const d = document.getElementById("zseb-" + zsebId);
+            if (d) d.showModal();
+            history.replaceState(null, "", location.pathname);
+        }
+    </script>
+</body>
+</html>
