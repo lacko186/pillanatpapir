@@ -1,0 +1,9 @@
+{% autoescape off %}Szia!
+
+Jelszó-visszaállítást kértél a Pillanatpapír fiókodhoz. Az új jelszó beállításához kattints erre a linkre (1 óráig érvényes):
+
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+
+Ha nem te kérted, hagyd figyelmen kívül ezt a levelet, a jelszavad nem változik.
+
+Pillanatpapír{% endautoescape %}s

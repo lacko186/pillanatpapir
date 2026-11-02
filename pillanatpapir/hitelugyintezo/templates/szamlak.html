@@ -3,161 +3,319 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#2E7D32">
     <title>Számláim – {{ projekt.nev }}</title>
     <style>
         :root {
-            --bg: #f3f5f9; --card: #fff; --text: #1f2937; --muted: #4b5563;
-            --accent: #1d4ed8; --border: #d1d5db; --soft: #f9fafb; --danger: #b91c1c;
+            --green: #50B748; --green-d: #2E7D32; --green-dd: #256628; --green-l: #EAF6E8;
+            --ink: #262626; --text: #363A42; --muted: #5F6670;
+            --line: #E3E8E3; --bg: #F4F6F4; --white: #fff;
+            --danger: #C62828; --amber: #F5A623;
+            --r: 16px; --gap: 16px;
+            --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
         }
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 24px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.45; }
-        h1 { margin: 0 0 16px; font-size: 1.6rem; }
-        h2 { margin: 0; }
-        h3 { margin: 22px 0 8px; font-size: 1.05rem; }
-
-        /* Akadálymentesség */
-        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.45; padding-bottom: env(safe-area-inset-bottom); }
+        h1, h2, h3, p { margin: 0; }
+        h1, h2, h3, strong { color: var(--ink); }
+        small { color: var(--muted); }
         .skip { position: absolute; left: -999px; top: 8px; background: #000; color: #fff; padding: 10px 14px; border-radius: 8px; z-index: 100; }
         .skip:focus { left: 8px; }
-        :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-        button, select, input, summary { min-height: 40px; }
+        :focus-visible { outline: 3px solid var(--green-d); outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-        .msg { padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: .95rem; }
-        .msg.success { background: #dcfce7; color: #14532d; }
-        .msg.error { background: #fee2e2; color: #7f1d1d; }
+        /* Mobilon az input 16px, hogy az iOS ne nagyítson rá */
+        button, select, input, summary { min-height: 44px; font-size: 16px; font-family: inherit; }
 
-        .btn { border: 1px solid var(--border); background: var(--card); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: .9rem; color: var(--text); font-family: inherit; }
-        .btn:hover { background: var(--soft); }
-        .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .btn-primary:hover { background: #1e40af; }
-        .btn-danger { color: var(--danger); border-color: #fca5a5; }
-        .btn-sm { padding: 5px 10px; font-size: .85rem; min-height: 36px; }
+        /* ---------- Gombok ---------- */
+        .btn { border: 1.5px solid var(--line); background: var(--white); padding: 8px 18px; border-radius: 999px; cursor: pointer; font-size: .92rem; font-weight: 700; color: var(--text); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn:hover { border-color: var(--green-d); color: var(--green-d); }
+        .btn-primary { background: var(--green-d); color: #fff; border-color: var(--green-d); }
+        .btn-primary:hover { background: var(--green-dd); border-color: var(--green-dd); color: #fff; }
+        .btn-danger { color: var(--danger); }
+        .btn-danger:hover { border-color: var(--danger); color: var(--danger); background: #FDECEC; }
+        .btn-sm { padding: 4px 14px; font-size: .88rem; }
+        .btn[disabled] { opacity: .5; cursor: not-allowed; }
+        .btn[disabled]:hover { border-color: var(--line); color: var(--text); }
 
-        /* Teljes projekt összesítő */
-        .summary { background: var(--card); border-radius: 18px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 26px; }
-        .summary h2 { font-size: 1.2rem; margin-bottom: 14px; }
-        .total-line { display: flex; gap: 6px 24px; flex-wrap: wrap; margin-bottom: 8px; }
-        .total-line div { font-size: .9rem; color: var(--muted); }
-        .total-line strong { display: block; font-size: 1.35rem; color: var(--text); }
-        .alloc { margin-top: 12px; padding: 10px 12px; background: var(--soft); border-radius: 10px; font-size: .92rem; }
-        .alloc.warn { background: #fef3c7; color: #78350f; }
-        .keret-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 14px; }
-        .keret-form label { font-size: .85rem; color: var(--muted); }
-        .keret-form input { display: block; margin-top: 3px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; width: 180px; font-family: inherit; }
+        /* ---------- Felső sáv ---------- */
+        .topbar { position: sticky; top: 0; z-index: 20; background: var(--white); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
+        .topbar::after { content: ""; display: block; height: 3px; background: var(--green); }
+        .topbar-in { max-width: 1120px; margin: 0 auto; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; color: var(--ink); }
+        .brand i { width: 34px; height: 34px; border-radius: 10px; background: var(--green); color: #fff; display: grid; place-items: center; font-style: normal; }
+        .user { display: flex; align-items: center; gap: 12px; font-size: .92rem; color: var(--muted); min-width: 0; }
+        .user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+        .user form { margin: 0; }
 
-        /* Zseb kártyák */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
-        .pocket { display: flex; align-items: center; gap: 16px; text-align: left; background: var(--card); border: none; border-radius: 16px; padding: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-top: 6px solid var(--c, var(--accent)); font-family: inherit; color: var(--text); transition: transform .15s, box-shadow .15s; }
-        .pocket:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
-        .pocket h3 { margin: 0 0 4px; font-size: 1.1rem; }
-        .pocket p { margin: 0; font-size: .92rem; }
-        .pocket small { color: var(--muted); }
-        .pocket.new { border-top: 2px dashed #6b7280; justify-content: center; color: var(--muted); font-size: 1rem; min-height: 110px; background: transparent; box-shadow: none; }
-        .badge-over { display: inline-block; background: #fee2e2; color: #7f1d1d; border-radius: 999px; padding: 1px 8px; font-size: .75rem; font-weight: 700; margin-top: 4px; }
+        .wrap { max-width: 1120px; margin: 0 auto; padding: 20px; display: grid; gap: 28px; }
 
-        /* Kördiagram */
+        .msg { padding: 12px 14px; border-radius: 12px; font-size: .95rem; border-left: 5px solid; }
+        .msg + .msg { margin-top: 8px; }
+        .msg.success { background: var(--green-l); color: #1F5F1B; border-color: var(--green); }
+        .msg.error { background: #FDECEC; color: #8E1B1B; border-color: var(--danger); }
+
+        /* ---------- Kártya és szekciók ---------- */
+        .card { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+        .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .section-head h2 { font-size: 1.2rem; }
+        .section-head p { font-size: .9rem; color: var(--muted); }
+
+        /* ---------- Összesítő ---------- */
+        .hero { overflow: hidden; }
+        .hero-band { background: var(--green-d); color: #fff; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hero-band h1 { color: #fff; font-size: 1.2rem; }
+        .hero-band p { font-size: .88rem; opacity: .9; }
+        .hero-body { padding: 22px; display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; }
+        .hero-info { display: grid; gap: 16px; min-width: 0; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .stat { background: var(--green-l); border-radius: 12px; padding: 12px; min-width: 0; }
+        .stat small { display: block; font-size: .78rem; }
+        .stat strong { font-size: 1.15rem; display: block; overflow-wrap: anywhere; }
+        .stat.good strong { color: var(--green-d); }
+        .note { padding: 10px 14px; background: var(--bg); border-radius: 12px; font-size: .92rem; }
+        .note.warn { background: #FFF3DC; color: #6B4500; }
+        .hero-more { grid-column: 1 / -1; display: grid; gap: 14px; }
+
+        .export { padding: 14px 16px; border-radius: 14px; border: 1.5px dashed #B8C2B8; display: flex; gap: 12px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .export p { font-size: .92rem; color: var(--muted); flex: 1 1 240px; }
+        .export.ready { border: 1.5px solid var(--green); background: var(--green-l); }
+        .export.ready p { color: #1F5F1B; }
+
+        .keret-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+        .keret-form label { font-size: .85rem; font-weight: 700; color: var(--muted); flex: 1 1 200px; }
+        .keret-form input { display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #B8C2B8; border-radius: 12px; }
+
+        /* ---------- Diagram ---------- */
         .donut { position: relative; flex: none; }
         .donut svg { width: 100%; display: block; }
-        .donut .ring { stroke: #e5e7eb; }
-        .donut.mini { width: 84px; }
-        .donut.big { width: 190px; }
-        .donut.huge { width: 230px; }
+        .donut .ring { stroke: #E6EBE6; }
+        .donut.mini { width: 68px; }
+        .donut.big { width: 170px; }
+        .donut.huge { width: 210px; }
         .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .donut-center strong { font-size: 1.1rem; }
-        .donut.big .donut-center strong { font-size: 1.9rem; }
-        .donut.huge .donut-center strong { font-size: 2.4rem; }
-        .donut-center span { font-size: .75rem; color: var(--muted); }
+        .donut-center strong { font-size: 1rem; }
+        .donut.big .donut-center strong { font-size: 1.7rem; }
+        .donut.huge .donut-center strong { font-size: 2.2rem; }
+        .donut-center span { font-size: .72rem; color: var(--muted); }
         .over .donut-center strong { color: var(--danger); }
 
-        .overview { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
-        .overview-text { flex: 1 1 260px; min-width: 0; }
         .legend { list-style: none; margin: 0; padding: 0; }
-        .legend li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
-        .legend li b { margin-left: auto; }
-        .legend i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; }
-        .budget-line { margin-top: 10px; font-size: .95rem; color: var(--muted); }
-        .budget-line.over { color: var(--danger); font-weight: 700; }
+        .legend li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: .93rem; }
+        .legend li:last-child { border-bottom: none; }
+        .legend li b { margin-left: auto; color: var(--ink); white-space: nowrap; }
+        .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+        .budget-line { margin-top: 8px; font-size: .95rem; color: var(--green-d); font-weight: 800; }
+        .budget-line.over { color: var(--danger); }
 
-        /* Felugró ablak */
-        dialog { border: none; border-radius: 20px; padding: 0; width: min(680px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); background: var(--card); color: var(--text); }
-        dialog::backdrop { background: rgba(15,23,42,.6); }
-        .dlg { max-height: 92vh; overflow-y: auto; }
-        .dlg-head { background: var(--c, var(--accent)); color: #fff; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2; }
-        .dlg-head h2 { font-size: 1.25rem; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
-        .dlg-head button { background: rgba(0,0,0,.3); border: 2px solid #fff; color: #fff; width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
-        .dlg-body { padding: 22px; }
+        /* ---------- Munkafolyamat kártyák ---------- */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: var(--gap); }
+        .pocket { display: flex; flex-direction: column; gap: 14px; text-align: left; padding: 16px; cursor: pointer; color: var(--text); transition: border-color .15s, box-shadow .15s; width: 100%; min-height: 0; font-size: 1rem; }
+        .pocket:hover { border-color: var(--green); box-shadow: 0 8px 24px rgba(80,183,72,.18); }
+        .pocket-top { display: flex; align-items: center; gap: 14px; }
+        .pocket-top > span:last-child { min-width: 0; }
+        .p-title { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); font-size: 1.05rem; }
+        .p-sum { display: block; font-size: .9rem; color: var(--muted); margin-top: 2px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; display: inline-block; }
+        .bar { height: 8px; background: #E6EBE6; border-radius: 99px; overflow: hidden; display: block; }
+        .bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+        .over .bar i { background: var(--danger); }
+        .pocket-meta { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); gap: 8px; }
+        .pocket.new { border: 2px dashed #B8C2B8; box-shadow: none; background: transparent; align-items: center; justify-content: center; font-weight: 800; color: var(--green-d); min-height: 130px; }
+        .pocket.new:hover { background: var(--green-l); border-color: var(--green-d); }
+        .badge { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: .75rem; font-weight: 700; }
+        .badge-over { background: #FDECEC; color: #8E1B1B; }
+        .badge-pdf { background: var(--green-l); color: var(--green-d); text-decoration: none; border: 1px solid #CFE6CC; }
 
-        /* Számlák */
-        .sz { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
-        .sz-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; flex-wrap: wrap; }
-        .sz-main { flex: 1 1 180px; min-width: 0; }
-        .sz-main strong { display: block; }
-        .sz-main small { color: var(--muted); }
-        .amount { font-weight: 700; white-space: nowrap; }
-        .sz-detail { background: var(--soft); padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: .88rem; color: var(--muted); }
-        .sz-detail strong { color: var(--text); font-weight: 500; display: block; }
-        .sz-actions { display: flex; gap: 8px; padding: 10px 14px; background: var(--soft); border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
-        .sz-actions form { margin: 0; display: flex; gap: 6px; align-items: center; }
-        .sz-edit { display: none; padding: 14px; background: var(--soft); }
-        .sz.editing .sz-view { display: none; }
-        .sz.editing .sz-edit { display: block; }
-        .status-form { margin: 0; }
-        select.pill, .sz-actions select { border: 1.5px solid #6b7280; background: #fff; border-radius: 999px; padding: 5px 10px; font-size: .85rem; font-family: inherit; cursor: pointer; }
-        select[data-s] { font-weight: 700; }
-        select[data-s="fizetve"] { border-color: #15803d; color: #14532d; }
-        select[data-s="feldolgozas"] { border-color: #b45309; color: #78350f; }
-        select[data-s="folyamatban"] { border-color: #1d4ed8; color: #1e3a8a; }
+        /* ---------- Aktiválható munkafolyamatok ---------- */
+        .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .preset { padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; align-items: end; border-left: 5px solid var(--c); }
+        .preset-name { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); }
+        .preset label { font-size: .78rem; font-weight: 700; color: var(--muted); }
+        .money { position: relative; display: block; margin-top: 4px; }
+        .money input { width: 100%; padding: 8px 38px 8px 12px; border: 1.5px solid #B8C2B8; border-radius: 12px; }
+        .money span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .85rem; pointer-events: none; }
 
-        /* Űrlapok */
-        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
-        .fields label { font-size: .85rem; color: var(--muted); display: block; }
-        .fields input, .fields select { width: 100%; margin-top: 3px; padding: 8px 10px; border: 1px solid #6b7280; border-radius: 8px; font-size: .95rem; background: #fff; font-family: inherit; }
+        /* ---------- Felugró ablak (mobilon teljes képernyő) ---------- */
+        dialog { border: none; border-radius: 22px; padding: 0; width: min(780px, 95vw); max-height: 94dvh; box-shadow: 0 25px 70px rgba(0,0,0,.35); background: var(--bg); color: var(--text); overflow: hidden; }
+        dialog[open] { display: flex; flex-direction: column; }
+        dialog::backdrop { background: rgba(38,38,38,.6); }
+        .dlg-head { background: var(--white); border-bottom: 3px solid var(--green); padding: 12px 16px 12px 20px; padding-top: max(12px, env(safe-area-inset-top)); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex: none; }
+        .dlg-head h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .dlg-head .dot { width: 14px; height: 14px; }
+        .x { background: var(--green-l); border: 1.5px solid var(--line); color: var(--ink); width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; padding: 0; flex: none; }
+        .x:hover { border-color: var(--green-d); }
+        .dlg-body { padding: 16px; display: grid; gap: 16px; overflow-y: auto; overscroll-behavior: contain; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+        .panel { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+        .panel > h3 { font-size: 1.02rem; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .panel > h3 small { font-weight: 500; font-size: .85rem; }
+        .overview { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .overview-text { flex: 1 1 240px; min-width: 0; }
+
+        /* ---------- Számlasorok ---------- */
+        .inv { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; background: var(--white); overflow: hidden; }
+        .inv[open] { border-color: var(--green); box-shadow: 0 4px 14px rgba(80,183,72,.14); }
+        .inv > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: grid; grid-template-columns: minmax(0,1fr) auto 20px; grid-template-areas: "main amount arrow" "chip chip chip"; gap: 4px 10px; align-items: center; }
+        .inv > summary::-webkit-details-marker { display: none; }
+        .inv > summary::after { content: "▾"; grid-area: arrow; color: var(--muted); transition: transform .15s; }
+        .inv[open] > summary::after { transform: rotate(180deg); color: var(--green-d); }
+        .inv > summary:hover { background: var(--green-l); }
+        .inv-main { grid-area: main; min-width: 0; }
+        .inv-main strong { display: block; overflow-wrap: anywhere; }
+        .inv-main small { display: block; overflow-wrap: anywhere; }
+        .inv > summary .amount { grid-area: amount; }
+        .inv > summary .chip { grid-area: chip; justify-self: start; }
+        .amount { font-weight: 800; white-space: nowrap; color: var(--ink); }
+        .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+        .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .st-fizetve { background: #E6F4E4; color: #1F5F1B; }
+        .st-feldolgozas { background: #FFF3DC; color: #7A4F00; }
+        .st-folyamatban { background: #E8EEF5; color: #34495E; }
+        .inv-body { border-top: 1px solid var(--line); padding: 14px; display: grid; gap: 16px; }
+        .inv-view { display: grid; gap: 16px; }
+        .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .facts div { font-size: .8rem; color: var(--muted); min-width: 0; }
+        .facts strong { display: block; font-size: .95rem; font-weight: 600; margin-top: 2px; overflow-wrap: anywhere; }
+        .row-label { font-size: .75rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+        .pdf-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: .9rem; color: var(--muted); }
+        .pdf-line form { margin: 0; }
+        .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 14px; border-top: 1px dashed var(--line); }
+        .row-actions form { margin: 0; }
+        select.pill, .row-actions select { border: 1.5px solid #B8C2B8; background: #fff; border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--text); max-width: 100%; }
+        .inv-edit { display: none; }
+        .inv.editing .inv-view { display: none; }
+        .inv.editing .inv-edit { display: block; }
+
+        /* ---------- Űrlapok ---------- */
+        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+        .fields label { font-size: .82rem; color: var(--muted); display: block; font-weight: 700; min-width: 0; }
+        .fields input:not([type=file]), .fields select { width: 100%; margin-top: 4px; padding: 9px 12px; border: 1.5px solid #B8C2B8; border-radius: 12px; background: #fff; color: var(--text); }
+        .fields input:focus, .fields select:focus, .keret-form input:focus, .money input:focus { border-color: var(--green-d); outline: 2px solid var(--green); outline-offset: 0; }
         .fields .full { grid-column: 1 / -1; }
-        .fields input[type=color] { padding: 2px; }
-        .form-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        .fields input[type=color] { padding: 3px; }
+        .form-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 
-        details.box { border: 1px solid var(--border); border-radius: 12px; margin-top: 14px; }
-        details.box > summary { cursor: pointer; padding: 12px 14px; font-weight: 600; list-style: none; }
-        details.box > summary::-webkit-details-marker { display: none; }
-        details.box > summary::before { content: "▸ "; }
-        details.box[open] > summary::before { content: "▾ "; }
-        details.box[open] > summary { border-bottom: 1px solid var(--border); }
-        details.box > .inner { padding: 14px; }
+        .drop { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 14px; border: 2px dashed #B8C2B8; border-radius: 14px; background: #fff; cursor: pointer; font-weight: 500; color: var(--muted); position: relative; font-size: .92rem; }
+        .drop:hover, .drop.over-drag { border-color: var(--green-d); background: var(--green-l); }
+        .drop:focus-within { outline: 3px solid var(--green-d); outline-offset: 2px; }
+        .drop svg { flex: none; width: 26px; height: 26px; color: var(--green-d); }
+        .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+        .drop .fname { overflow-wrap: anywhere; }
+        .drop.has-file { border-style: solid; border-color: var(--green); background: var(--green-l); color: #1F5F1B; }
+        .hint { font-size: .82rem; font-weight: 700; color: var(--muted); }
 
-        /* Aktiválható munkafolyamatok */
-        .presets { margin-top: 28px; }
-        .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-        .preset { background: var(--card); border: 1px dashed #6b7280; border-top: 5px solid var(--c); border-radius: 14px; padding: 14px; }
-        .preset strong { display: block; margin-bottom: 8px; }
-        .preset form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
-        .preset label { font-size: .8rem; color: var(--muted); flex: 1 1 110px; }
-        .preset input { width: 100%; margin-top: 2px; padding: 7px 9px; border: 1px solid #6b7280; border-radius: 8px; font-family: inherit; font-size: .9rem; }
+        details.add { margin-bottom: 14px; border: 1.5px solid var(--green-d); border-radius: 14px; background: var(--white); }
+        details.add > summary { cursor: pointer; padding: 8px 16px; font-weight: 800; color: var(--green-d); list-style: none; display: flex; align-items: center; }
+        details.add > summary::-webkit-details-marker { display: none; }
+        details.add > summary::before { content: "+"; font-size: 1.3rem; margin-right: 10px; }
+        details.add[open] > summary::before { content: "–"; }
+        details.add[open] { background: var(--green-l); }
+        details.add > .inner { padding: 4px 16px 16px; }
+        details.fold > summary { cursor: pointer; font-weight: 800; color: var(--ink); list-style: none; display: flex; align-items: center; }
+        details.fold > summary::-webkit-details-marker { display: none; }
+        details.fold > summary::before { content: "▸"; color: var(--green-d); margin-right: 8px; }
+        details.fold[open] > summary::before { content: "▾"; }
 
-        .empty { color: var(--muted); font-size: .92rem; padding: 8px 0; }
-        .unassigned { margin-top: 32px; }
-        .unassigned .sz-row form { display: flex; gap: 6px; margin: 0; }
-        @media (max-width: 480px) { .fields, .sz-detail { grid-template-columns: 1fr; } body { padding: 14px; } }
+        .empty { color: var(--muted); font-size: .92rem; padding: 10px 0; text-align: center; }
+        .searchbar { padding: 14px; display: flex; align-items: end; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .searchbar label { flex: 1 1 190px; font-size: .8rem; font-weight: 700; color: var(--muted); }
+        .searchbar input, .searchbar select { display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #B8C2B8; border-radius: 12px; background: #fff; }
+        .searchbar .btn { flex: 0 0 auto; }
+
+        /* Besorolatlan */
+        .loose { padding: 12px 14px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; align-items: center; margin-bottom: 10px; }
+        .loose .move { grid-column: 1 / -1; display: flex; gap: 8px; margin: 0; }
+        .loose .move select { flex: 1; min-width: 0; }
+
+        /* ---------- Blinky ---------- */
+        .ai-fab { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 30; background: var(--green-d); color: #fff; border: none; border-radius: 999px; padding: 12px 20px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+        .ai-box { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 30; width: min(380px, calc(100vw - 32px)); height: min(520px, 70dvh); background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 16px 50px rgba(0,0,0,.28); display: none; flex-direction: column; overflow: hidden; }
+        .ai-box.open { display: flex; }
+        .ai-head { padding: 8px 12px 8px 16px; border-bottom: 3px solid var(--green); font-weight: 800; color: var(--ink); display: flex; justify-content: space-between; align-items: center; }
+        .ai-log { flex: 1; overflow-y: auto; padding: 14px; display: grid; gap: 10px; align-content: start; background: var(--bg); }
+        .ai-msg { padding: 9px 13px; border-radius: 14px; max-width: 88%; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem; }
+        .ai-msg.u { background: var(--green-d); color: #fff; justify-self: end; }
+        .ai-msg.a { background: #fff; border: 1px solid var(--line); justify-self: start; }
+        .ai-note { font-size: .75rem; color: var(--muted); padding: 6px 14px; background: #fff; }
+        .ai-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+        .ai-form input { flex: 1; min-width: 0; padding: 8px 14px; border: 1.5px solid #B8C2B8; border-radius: 999px; }
+
+        /* ---------- Tablet ---------- */
+        @media (max-width: 860px) {
+            .hero-body { grid-template-columns: 1fr; justify-items: center; gap: 20px; }
+            .hero-info, .hero-more { width: 100%; }
+        }
+
+        /* ---------- Mobil ---------- */
+        @media (max-width: 640px) {
+            .wrap { padding: 14px; gap: 24px; }
+            .topbar-in { padding: 6px 14px; }
+            .user span { display: none; }
+            .hero-band { padding: 12px 16px; }
+            .hero-body { padding: 16px; }
+            .donut.huge { width: 180px; }
+            .stats { gap: 8px; }
+            .stat { padding: 10px 8px; }
+            .stat strong { font-size: 1rem; }
+            .grid, .preset-grid { grid-template-columns: 1fr; gap: 12px; }
+            .fields { grid-template-columns: 1fr; }
+            .export .btn, .keret-form .btn { width: 100%; }
+            .keret-form label { flex-basis: 100%; }
+
+            /* a felugró ablak teljes képernyős */
+            dialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; margin: 0; }
+            .dlg-body { padding: 12px; gap: 12px; }
+            .panel { padding: 14px; }
+            .donut.big { width: 150px; }
+
+            .row-actions > * { flex: 1 1 100%; }
+            .row-actions .btn, .row-actions select { width: 100%; }
+            .row-actions form[data-confirm] { margin-left: 0 !important; }
+            .pdf-line .btn { flex: 1 1 auto; }
+
+            .ai-fab { padding: 12px 18px; }
+            .ai-box { right: 8px; left: 8px; width: auto; bottom: calc(72px + env(safe-area-inset-bottom)); height: min(70dvh, 560px); }
+        }
+        @media (min-width: 641px) and (max-width: 1000px) { .facts { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1001px) { .facts { grid-template-columns: repeat(4, 1fr); } .inv > summary { grid-template-areas: "main chip amount arrow"; grid-template-columns: minmax(0,1fr) auto auto 20px; } }
     </style>
 </head>
 <body>
     <a class="skip" href="#fo-tartalom">Ugrás a tartalomra</a>
 
-    <main id="fo-tartalom">
-        <h1>{{ projekt.nev }}</h1>
-
-        <div role="status" aria-live="polite">
-            {% for message in messages %}
-            <div class="msg {{ message.tags }}">{{ message }}</div>
-            {% endfor %}
+    <header class="topbar">
+        <div class="topbar-in">
+            <div class="brand"><i aria-hidden="true">P</i>Pillanatpapír</div>
+            <div class="user">
+                <span>{{ request.user.first_name|default:request.user.email }}</span>
+                <form method="post" action="{% url 'kijelentkezes' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm">Kilépés</button>
+                </form>
+            </div>
         </div>
+    </header>
 
-        <!-- Teljes projekt: mindig látható -->
-        <section class="summary" aria-labelledby="osszkep-cim">
-            <h2 id="osszkep-cim">Teljes projekt</h2>
-            <div class="overview {% if ossz.tullepve %}over{% endif %}">
-                <div class="donut huge" role="img"
+    <main id="fo-tartalom" class="wrap">
+
+        {% if messages %}
+        <div role="status" aria-live="polite">
+            {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Teljes projekt -->
+        <section class="card hero" aria-labelledby="osszkep-cim">
+            <div class="hero-band">
+                <div>
+                    <h1 id="osszkep-cim">{{ projekt.nev }}</h1>
+                    <p>A teljes projekt állása az összes számla alapján</p>
+                </div>
+            </div>
+            <div class="hero-body">
+                <div class="donut huge {% if ossz.tullepve %}over{% endif %}" role="img"
                      aria-label="Összes keret {{ projekt.osszkeret|floatformat:'0g' }} forint. Felhasználva {{ ossz.szazalek }} százalék, ebből kifizetve {{ ossz.fizetve_szazalek }} százalék.">
                     <svg viewBox="0 0 42 42" aria-hidden="true">
                         <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
@@ -172,145 +330,178 @@
                     </div>
                 </div>
 
-                <div class="overview-text">
-                    <div class="total-line">
-                        <div>Összes keret<strong>{{ projekt.osszkeret|floatformat:"0g" }} Ft</strong></div>
-                        <div>Felhasználva<strong>{{ ossz.osszes|floatformat:"0g" }} Ft</strong></div>
-                        <div>Kifizetve<strong>{{ ossz.fizetve_szazalek }}%</strong></div>
+                <div class="hero-info">
+                    <div class="stats">
+                        <div class="stat"><small>Összes keret</small><strong>{{ projekt.osszkeret|floatformat:"0g" }} Ft</strong></div>
+                        <div class="stat"><small>Felhasználva</small><strong>{{ ossz.osszes|floatformat:"0g" }} Ft</strong></div>
+                        <div class="stat good"><small>Kifizetve</small><strong>{{ ossz.fizetve_szazalek }}%</strong></div>
                     </div>
 
-                    <ul class="legend">
-                        {% for r in ossz.reszek %}
-                        <li><i style="background: {{ r.szin }}" aria-hidden="true"></i>{{ r.nev }} ({{ r.szazalek }}%)<b>{{ r.osszeg|floatformat:"0g" }} Ft</b></li>
-                        {% endfor %}
-                    </ul>
-
-                    {% if ossz.tullepve %}
-                    <div class="budget-line over">Az összes keretet túllépted: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
-                    {% else %}
-                    <div class="budget-line">Hátralévő keret: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
-                    {% endif %}
-
-                    <div class="alloc {% if ossz.tulosztva %}warn{% endif %}">
-                        Zsebekbe osztva: <strong>{{ ossz.zsebekbe_osztva|floatformat:"0g" }} Ft</strong>
-                        {% if ossz.tulosztva %}
-                        – ez {{ ossz.szabad_abs|floatformat:"0g" }} Ft-tal több az összes keretnél.
+                    <div>
+                        <ul class="legend">
+                            {% for r in ossz.reszek %}
+                            <li><i style="background: {{ r.szin }}" aria-hidden="true"></i>{{ r.nev }} ({{ r.szazalek }}%)<b>{{ r.osszeg|floatformat:"0g" }} Ft</b></li>
+                            {% endfor %}
+                        </ul>
+                        {% if ossz.tullepve %}
+                        <div class="budget-line over">Az összes keretet túllépted: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
                         {% else %}
-                        – még nem osztott keret: {{ ossz.szabad_abs|floatformat:"0g" }} Ft.
+                        <div class="budget-line">Hátralévő keret: {{ ossz.kulonbseg|floatformat:"0g" }} Ft</div>
                         {% endif %}
                     </div>
 
-                    <form class="keret-form" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="osszkeret_mentes">
-                        <label>Összes keret módosítása (Ft)
-                            <input type="number" min="0" name="osszkeret" value="{{ projekt.osszkeret|unlocalize }}" required>
-                        </label>
-                        <button type="submit" class="btn btn-primary">Mentés</button>
-                    </form>
+                    <div class="note {% if ossz.tulosztva %}warn{% endif %}">
+                        Munkafolyamatokba osztva: <strong>{{ ossz.zsebekbe_osztva|floatformat:"0g" }} Ft</strong>
+                        {% if ossz.tulosztva %}– ez {{ ossz.szabad_abs|floatformat:"0g" }} Ft-tal több az összes keretnél.
+                        {% else %}– még nem osztott: {{ ossz.szabad_abs|floatformat:"0g" }} Ft.{% endif %}
+                    </div>
+                </div>
+
+                <div class="hero-more">
+                    <div class="export {% if ossz.keret_elerve %}ready{% endif %}">
+                        {% if ossz.keret_elerve %}
+                        <p><strong>Elérted a keretet, a projekt lezárható.</strong><br>Letöltheted a számlákat mappákba rendezve, az Excel összesítővel.</p>
+                        <a class="btn btn-primary" href="{% url 'export_zip' %}">Letöltés (ZIP)</a>
+                        {% else %}
+                        <p>A ZIP letöltés akkor lesz elérhető, ha a felhasznált összeg eléri a keretet. Még {{ ossz.kulonbseg|floatformat:"0g" }} Ft hiányzik.</p>
+                        <button type="button" class="btn" disabled>Letöltés (ZIP)</button>
+                        {% endif %}
+                    </div>
+
+                    <details class="fold">
+                        <summary>Összes keret módosítása</summary>
+                        <form class="keret-form" method="post" style="margin-top:12px">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="osszkeret_mentes">
+                            <label>Összes keret (Ft)
+                                <input type="number" inputmode="numeric" min="0" name="osszkeret" value="{{ projekt.osszkeret|unlocalize }}" required>
+                            </label>
+                            <button type="submit" class="btn btn-primary">Mentés</button>
+                        </form>
+                    </details>
                 </div>
             </div>
         </section>
 
-        <!-- Aktív zsebek -->
+        <!-- Aktív munkafolyamatok -->
         <section aria-labelledby="zsebek-cim">
-            <h2 id="zsebek-cim" style="margin-bottom:12px;font-size:1.2rem">Munkafolyamatok</h2>
+            <div class="section-head"><h2 id="zsebek-cim">Munkafolyamatok</h2></div>
+            <form class="card searchbar" method="get" role="search" aria-label="Számlák keresése">
+                <label>Számlák keresése
+                    <input type="search" name="q" value="{{ kereses }}" placeholder="Kiállító, azonosító vagy adószám…">
+                </label>
+                <label>Állapot
+                    <select name="statusz"><option value="">Mindegyik</option>{% for k,n in statuszok %}<option value="{{ k }}" {% if request.GET.statusz == k %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+                </label>
+                <label>Sorrend
+                    <select name="sort"><option value="date" {% if rendezes == 'date' %}selected{% endif %}>Legújabb</option><option value="amount" {% if rendezes == 'amount' %}selected{% endif %}>Legnagyobb összeg</option><option value="amount_asc" {% if rendezes == 'amount_asc' %}selected{% endif %}>Legkisebb összeg</option><option value="vendor" {% if rendezes == 'vendor' %}selected{% endif %}>Kiállító neve</option></select>
+                </label>
+                <button class="btn btn-primary" type="submit">Szűrés</button>
+                {% if kereses or request.GET.statusz %}<a class="btn" href="{% url 'dokumentumok_listaja' %}">Törlés</a>{% endif %}
+            </form>
             <div class="grid">
                 {% for z in zsebek %}
-                <button type="button" class="pocket {% if z.tullepve %}over{% endif %}" style="--c: {{ z.zseb.szin }}"
+                <button type="button" class="card pocket {% if z.tullepve %}over{% endif %}" style="--c: {{ z.zseb.szin }}"
                         data-open="zseb-{{ z.zseb.pk }}" aria-haspopup="dialog"
                         aria-label="{{ z.zseb.nev }}: {{ z.szazalek }} százalék felhasználva a {{ z.keret|floatformat:'0g' }} forintos keretből{% if z.tullepve %}, túllépve{% endif %}. Részletek megnyitása.">
-                    <span class="donut mini" aria-hidden="true">
-                        <svg viewBox="0 0 42 42">
-                            <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
-                            {% for r in z.reszek %}{% if r.hossz != "0.00" %}
-                            <circle cx="21" cy="21" r="15.9155" fill="none" stroke="{{ r.szin }}" stroke-width="4"
-                                    stroke-dasharray="{{ r.hossz }} 100" stroke-dashoffset="{{ r.offset }}" transform="rotate(-90 21 21)"/>
-                            {% endif %}{% endfor %}
-                        </svg>
-                        <span class="donut-center"><strong>{{ z.szazalek }}%</strong></span>
+                    <span class="pocket-top">
+                        <span class="donut mini" aria-hidden="true">
+                            <svg viewBox="0 0 42 42">
+                                <circle class="ring" cx="21" cy="21" r="15.9155" fill="none" stroke-width="4"/>
+                                {% for r in z.reszek %}{% if r.hossz != "0.00" %}
+                                <circle cx="21" cy="21" r="15.9155" fill="none" stroke="{{ r.szin }}" stroke-width="4"
+                                        stroke-dasharray="{{ r.hossz }} 100" stroke-dashoffset="{{ r.offset }}" transform="rotate(-90 21 21)"/>
+                                {% endif %}{% endfor %}
+                            </svg>
+                            <span class="donut-center"><strong>{{ z.szazalek }}%</strong></span>
+                        </span>
+                        <span>
+                            <span class="p-title"><i class="dot" aria-hidden="true"></i>{{ z.zseb.nev }}</span>
+                            <span class="p-sum">{{ z.osszes|floatformat:"0g" }} / {{ z.keret|floatformat:"0g" }} Ft</span>
+                        </span>
                     </span>
-                    <span>
-                        <h3>{{ z.zseb.nev }}</h3>
-                        <p>{{ z.osszes|floatformat:"0g" }} / {{ z.keret|floatformat:"0g" }} Ft</p>
-                        <small>{{ z.szamlak|length }} számla</small>
-                        {% if z.tullepve %}<br><span class="badge-over">Túllépve</span>{% endif %}
+                    <span class="bar" aria-hidden="true"><i style="width: {% if z.szazalek > 100 %}100{% else %}{{ z.szazalek }}{% endif %}%"></i></span>
+                    <span class="pocket-meta">
+                        <span>{{ z.szamlak|length }} számla</span>
+                        {% if z.tullepve %}<span class="badge badge-over">Túllépve</span>{% else %}<span>Hátra: {{ z.kulonbseg|floatformat:"0g" }} Ft</span>{% endif %}
                     </span>
                 </button>
                 {% endfor %}
 
-                <button type="button" class="pocket new" data-open="uj-zseb" aria-haspopup="dialog">+ Egyedi zseb létrehozása</button>
+                <button type="button" class="card pocket new" data-open="uj-zseb" aria-haspopup="dialog">+ Egyedi munkafolyamat</button>
             </div>
         </section>
 
-        <!-- Aktiválható alap munkafolyamatok -->
+        <!-- Aktiválható munkafolyamatok -->
         {% if inaktiv %}
-        <section class="presets" aria-labelledby="preset-cim">
-            <details class="box" open>
-                <summary id="preset-cim">További házfelújítási munkafolyamatok aktiválása ({{ inaktiv|length }})</summary>
-                <div class="inner">
-                    <p class="empty" style="margin-top:0">Aktiváláskor beállíthatod a keretet. A javasolt összegek együtt kiadják a 10 millió forintot.</p>
-                    <div class="preset-grid">
-                        {% for p in inaktiv %}
-                        <div class="preset" style="--c: {{ p.szin }}">
-                            <strong>{{ p.nev }}</strong>
-                            <form method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="aktival">
-                                <input type="hidden" name="pk" value="{{ p.pk }}">
-                                <label>Keret (Ft)
-                                    <input type="number" min="0" name="keret" value="{{ p.keret|unlocalize }}" required>
-                                </label>
-                                <button type="submit" class="btn btn-primary btn-sm" aria-label="{{ p.nev }} aktiválása">Aktiválás</button>
-                            </form>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </details>
+        <section aria-labelledby="preset-cim">
+            <div class="section-head">
+                <h2 id="preset-cim">További munkafolyamatok</h2>
+                <p>Állítsd be a keretet, és aktiváld, amire szükséged van.</p>
+            </div>
+            <div class="preset-grid">
+                {% for p in inaktiv %}
+                <form class="card preset" method="post" style="--c: {{ p.szin }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="aktival">
+                    <input type="hidden" name="pk" value="{{ p.pk }}">
+                    <div class="preset-name"><i class="dot" aria-hidden="true"></i>{{ p.nev }}</div>
+                    <label>Keret
+                        <span class="money">
+                            <input type="number" inputmode="numeric" min="0" name="keret" value="{{ p.keret|unlocalize }}" required>
+                            <span aria-hidden="true">Ft</span>
+                        </span>
+                    </label>
+                    <button type="submit" class="btn btn-primary" aria-label="{{ p.nev }} aktiválása">Aktiválás</button>
+                </form>
+                {% endfor %}
+            </div>
         </section>
         {% endif %}
 
         <!-- Besorolatlan számlák -->
         {% if besorolatlan %}
-        <section class="unassigned" aria-labelledby="bes-cim">
-            <h3 id="bes-cim">Besorolatlan számlák ({{ besorolatlan|length }})</h3>
-            <p class="empty">Ezek a teljes projekt összegébe beleszámítanak, de egyik zsebbe sem tartoznak.</p>
+        <section aria-labelledby="bes-cim">
+            <div class="section-head">
+                <h2 id="bes-cim">Besorolatlan számlák ({{ besorolatlan|length }})</h2>
+                <p>A teljes összegbe beleszámítanak, de egy munkafolyamathoz sem tartoznak.</p>
+            </div>
             {% for sz in besorolatlan %}
-            <div class="sz">
-                <div class="sz-row">
-                    <div class="sz-main">
-                        <strong>{{ sz.szamla_szama }}</strong>
-                        <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
-                    </div>
-                    <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="athelyez">
-                        <input type="hidden" name="pk" value="{{ sz.pk }}">
-                        <select name="zseb" required aria-label="Zseb kiválasztása a(z) {{ sz.szamla_szama }} számlához" class="pill">
-                            <option value="">Zsebbe…</option>
-                            {% for zs in zseb_lista %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endfor %}
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-primary">Áthelyez</button>
-                    </form>
+            <div class="card loose">
+                <div class="inv-main">
+                    <strong>{{ sz.szamlaszama }} {% if sz.pdf %}<a class="badge badge-pdf" href="{% url 'szamla_pdf' sz.pk %}" target="_blank" rel="noopener">PDF</a>{% endif %}</strong>
+                    <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
                 </div>
+                <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
+                <form method="post" class="move">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="athelyez">
+                    <input type="hidden" name="pk" value="{{ sz.pk }}">
+                    <select name="zseb" required aria-label="Munkafolyamat kiválasztása a(z) {{ sz.szamlaszama }} számlához" class="pill">
+                        <option value="">Áthelyezés…</option>
+                        {% for zs in zseb_lista %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">Áthelyez</button>
+                </form>
             </div>
             {% endfor %}
         </section>
         {% endif %}
     </main>
 
-    <!-- Részletes nézetek: egy aktív zseb = egy felugró ablak -->
+    <!-- Részletes nézetek -->
     {% for z in zsebek %}
-    <dialog id="zseb-{{ z.zseb.pk }}" aria-labelledby="zseb-cim-{{ z.zseb.pk }}">
-        <div class="dlg" style="--c: {{ z.zseb.szin }}">
-            <div class="dlg-head">
-                <h2 id="zseb-cim-{{ z.zseb.pk }}">{{ z.zseb.nev }}</h2>
-                <button type="button" data-close aria-label="Bezárás">✕</button>
-            </div>
-            <div class="dlg-body">
+    <dialog id="zseb-{{ z.zseb.pk }}" aria-labelledby="zseb-cim-{{ z.zseb.pk }}" style="--c: {{ z.zseb.szin }}">
+        <div class="dlg-head">
+            <h2 id="zseb-cim-{{ z.zseb.pk }}"><i class="dot" aria-hidden="true"></i>{{ z.zseb.nev }}</h2>
+            <button type="button" class="x" data-close aria-label="Bezárás">✕</button>
+        </div>
 
+        <div class="dlg-body">
+
+            <!-- 1. Áttekintés -->
+            <section class="panel" aria-label="Áttekintés">
+                <h3>Áttekintés</h3>
                 <div class="overview {% if z.tullepve %}over{% endif %}">
                     <div class="donut big" role="img"
                          aria-label="{{ z.zseb.nev }}: {{ z.szazalek }} százalék felhasználva a {{ z.keret|floatformat:'0g' }} forintos keretből, ebből kifizetve {{ z.fizetve_szazalek }} százalék.">
@@ -328,10 +519,10 @@
                     </div>
                     <div class="overview-text">
                         <ul class="legend">
+                            <li><i style="background:#E6EBE6;border:1px solid #9AA59A" aria-hidden="true"></i>Keret<b>{{ z.keret|floatformat:"0g" }} Ft</b></li>
                             {% for r in z.reszek %}
                             <li><i style="background: {{ r.szin }}" aria-hidden="true"></i>{{ r.nev }}<b>{{ r.osszeg|floatformat:"0g" }} Ft</b></li>
                             {% endfor %}
-                            <li><i style="background:#e5e7eb;border:1px solid #9ca3af" aria-hidden="true"></i>Keret<b>{{ z.keret|floatformat:"0g" }} Ft</b></li>
                         </ul>
                         {% if z.tullepve %}
                         <div class="budget-line over">Túllépve: {{ z.kulonbseg|floatformat:"0g" }} Ft</div>
@@ -340,166 +531,247 @@
                         {% endif %}
                     </div>
                 </div>
+            </section>
 
-                <details class="box">
+            <!-- 2. Számlák -->
+            <section class="panel" aria-label="Számlák">
+                <h3>Számlák <small>{{ z.szamlak|length }} db</small></h3>
+
+                <details class="add">
                     <summary>Új számla felvétele</summary>
                     <div class="inner">
-                        <form method="post">
+                        <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="uj_szamla">
                             <input type="hidden" name="zseb" value="{{ z.zseb.pk }}">
                             <div class="fields">
-                                <label>Számlaszám <input name="szamla_szama" required></label>
-                                <label>Azonosító <input name="szamla_azonosito"></label>
-                                <label class="full">Kivitelező <input name="kivitelezo" required></label>
-                                <label>Kelte <input type="date" name="szamla_kelte" value="{% now 'Y-m-d' %}"></label>
-                                <label>Adószám <input name="adoszam"></label>
-                                <label>ÁFA <input name="afa"></label>
-                                <label>Bruttó összeg (Ft) <input type="number" step="any" min="0" name="szamla_brutto_osszege" required></label>
+                                <label>Számlaszám <input type="number" inputmode="numeric" name="szamlaszama" value="1" required></label>
+                                <label>Azonosító <input name="szamla_azonosito" maxlength="100" required></label>
+                                <label class="full">Kivitelező <input name="kivitelezo" maxlength="100" required></label>
+                                <label>Kelte <input type="date" name="szamla_kelte" value="{% now 'Y-m-d' %}" required></label>
+                                <label>Adószám <input name="adoszam" maxlength="15" inputmode="numeric" required></label>
+                                <label>ÁFA (%) <input type="number" inputmode="decimal" step="0.01" min="0" max="999.99" name="afa" value="27" required></label>
+                                <label>Bruttó összeg (Ft) <input type="number" inputmode="numeric" step="1" min="0" name="szamla_brutto_osszege" required></label>
                                 <label class="full">Állapot
                                     <select name="statusz">
                                         {% for k, n in statuszok %}<option value="{{ k }}">{{ n }}</option>{% endfor %}
                                     </select>
                                 </label>
+                                <div class="full">
+                                    <span class="hint">Számla PDF (nem kötelező, legfeljebb 10 MB)</span>
+                                    <label class="drop">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6m-3 3 3-3 3 3"/></svg>
+                                        <span class="fname" data-fname>Érintsd meg a PDF kiválasztásához</span>
+                                        <input type="file" name="pdf" accept="application/pdf,.pdf">
+                                    </label>
+                                </div>
                             </div>
                             <div class="form-actions"><button type="submit" class="btn btn-primary">Számla mentése</button></div>
                         </form>
                     </div>
                 </details>
 
-                <h3>Számlák ({{ z.szamlak|length }})</h3>
                 {% for sz in z.szamlak %}
-                <div class="sz">
-                    <div class="sz-view">
-                        <div class="sz-row">
-                            <div class="sz-main">
-                                <strong>{{ sz.szamla_szama }}</strong>
-                                <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
+                <details class="inv">
+                    <summary>
+                        <span class="inv-main">
+                            <strong>{{ sz.szamlaszama }}{% if sz.pdf %} <span class="badge badge-pdf">PDF</span>{% endif %}</strong>
+                            <small>{{ sz.kivitelezo }} · {{ sz.szamla_kelte }}</small>
+                        </span>
+                        <span class="chip st-{{ sz.statusz }}">{{ sz.get_statusz_display }}</span>
+                        <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
+                    </summary>
+
+                    <div class="inv-body">
+                        <div class="inv-view">
+                            <div class="facts">
+                                <div>Azonosító<strong>{{ sz.szamla_azonosito|default:"–" }}</strong></div>
+                                <div>Adószám<strong>{{ sz.adoszam|default:"–" }}</strong></div>
+                                <div>ÁFA<strong>{{ sz.afa }}%</strong></div>
+                                <div>Kelte<strong>{{ sz.szamla_kelte }}</strong></div>
                             </div>
-                            <span class="amount">{{ sz.szamla_brutto_osszege|floatformat:"0g" }} Ft</span>
-                            <form method="post" class="status-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="statusz">
-                                <input type="hidden" name="pk" value="{{ sz.pk }}">
-                                <select name="statusz" class="pill" data-s="{{ sz.statusz }}"
-                                        aria-label="A(z) {{ sz.szamla_szama }} számla állapota" onchange="this.form.submit()">
-                                    {% for k, n in statuszok %}
-                                    <option value="{{ k }}" {% if k == sz.statusz %}selected{% endif %}>{{ n }}</option>
-                                    {% endfor %}
-                                </select>
-                            </form>
+
+                            <div>
+                                <div class="row-label">Állapot</div>
+                                <form method="post" style="margin:0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="statusz">
+                                    <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                    <select name="statusz" class="pill" aria-label="A(z) {{ sz.szamlaszama }} számla állapota" onchange="this.form.submit()">
+                                        {% for k, n in statuszok %}
+                                        <option value="{{ k }}" {% if k == sz.statusz %}selected{% endif %}>{{ n }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </div>
+
+                            <div>
+                                <div class="row-label">Csatolt PDF</div>
+                                <div class="pdf-line">
+                                    {% if sz.pdf %}
+                                    <a class="btn btn-sm btn-primary" href="{% url 'szamla_pdf' sz.pk %}" target="_blank" rel="noopener">PDF megnyitása</a>
+                                    <form method="post" data-confirm="Biztosan törlöd a(z) {{ sz.szamlaszama }} számla PDF-jét?">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="pdf_torles">
+                                        <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">PDF törlése</button>
+                                    </form>
+                                    {% else %}
+                                    Nincs csatolt PDF. A „Szerkesztés” gombbal tölthetsz fel egyet.
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if sz.pdf %}
+                            <div>
+                                <div class="row-label">PDF-ellenőrzés</div>
+                                <div class="pdf-line">
+                                    {% if sz.ocr_allapot %}
+                                    <span class="chip {% if sz.ocr_allapot == 'egyezik' %}st-fizetve{% else %}st-feldolgozas{% endif %}">{{ sz.get_ocr_allapot_display }}</span>
+                                    <span>{{ sz.ocr_jegyzet }}</span>
+                                    {% else %}Még nem volt ellenőrizve.{% endif %}
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="ocr_ujra">
+                                        <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                        <button type="submit" class="btn btn-sm">Újraellenőrzés</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="row-actions">
+                                <button type="button" class="btn btn-sm" data-szerk>Szerkesztés</button>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="athelyez">
+                                    <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                    <select name="zseb" aria-label="A(z) {{ sz.szamlaszama }} számla áthelyezése" onchange="this.form.submit()">
+                                        <option value="">Áthelyezés…</option>
+                                        {% for zs in zseb_lista %}{% if zs.pk != z.zseb.pk %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endif %}{% endfor %}
+                                        <option value="">Besorolatlan</option>
+                                    </select>
+                                </form>
+                                <form method="post" data-confirm="Biztosan törlöd a(z) {{ sz.szamlaszama }} számlát?" style="margin-left:auto">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="szamla_torles">
+                                    <input type="hidden" name="pk" value="{{ sz.pk }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Törlés</button>
+                                </form>
+                            </div>
                         </div>
-                        <div class="sz-detail">
-                            <span>Azonosító <strong>{{ sz.szamla_azonosito|default:"–" }}</strong></span>
-                            <span>Adószám <strong>{{ sz.adoszam|default:"–" }}</strong></span>
-                            <span>ÁFA <strong>{{ sz.afa|default:"–" }}</strong></span>
-                            <span>Kelte <strong>{{ sz.szamla_kelte }}</strong></span>
-                        </div>
-                        <div class="sz-actions">
-                            <button type="button" class="btn btn-sm" data-szerk>Szerkesztés</button>
-                            <form method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="athelyez">
-                                <input type="hidden" name="pk" value="{{ sz.pk }}">
-                                <select name="zseb" aria-label="A(z) {{ sz.szamla_szama }} számla áthelyezése másik zsebbe" onchange="this.form.submit()">
-                                    <option value="">Áthelyezés…</option>
-                                    {% for zs in zseb_lista %}{% if zs.pk != z.zseb.pk %}<option value="{{ zs.pk }}">{{ zs.nev }}</option>{% endif %}{% endfor %}
-                                    <option value="">Besorolatlan</option>
-                                </select>
-                            </form>
-                            <form method="post" data-confirm="Biztosan törlöd a(z) {{ sz.szamla_szama }} számlát?">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="szamla_torles">
-                                <input type="hidden" name="pk" value="{{ sz.pk }}">
-                                <button type="submit" class="btn btn-sm btn-danger">Törlés</button>
-                            </form>
-                        </div>
+
+                        <form class="inv-edit" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="szamla_mentes">
+                            <input type="hidden" name="pk" value="{{ sz.pk }}">
+                            <div class="fields">
+                                <label>Számlaszám <input type="number" inputmode="numeric" name="szamlaszama" value="{{ sz.szamlaszama|unlocalize }}" required></label>
+                                <label>Azonosító <input name="szamla_azonosito" maxlength="100" value="{{ sz.szamla_azonosito }}" required></label>
+                                <label class="full">Kivitelező <input name="kivitelezo" maxlength="100" value="{{ sz.kivitelezo }}" required></label>
+                                <label>Kelte <input type="date" name="szamla_kelte" value="{{ sz.szamla_kelte|date:'Y-m-d' }}" required></label>
+                                <label>Adószám <input name="adoszam" maxlength="15" inputmode="numeric" value="{{ sz.adoszam }}" required></label>
+                                <label>ÁFA (%) <input type="number" inputmode="decimal" step="0.01" min="0" max="999.99" name="afa" value="{{ sz.afa|unlocalize }}" required></label>
+                                <label>Bruttó összeg (Ft) <input type="number" inputmode="numeric" step="1" min="0" name="szamla_brutto_osszege" value="{{ sz.szamla_brutto_osszege|unlocalize }}" required></label>
+                                <div class="full">
+                                    <span class="hint">{% if sz.pdf %}PDF cseréje (ha üresen hagyod, a mostani marad){% else %}Számla PDF (nem kötelező, legfeljebb 10 MB){% endif %}</span>
+                                    <label class="drop">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6m-3 3 3-3 3 3"/></svg>
+                                        <span class="fname" data-fname>Érintsd meg a PDF kiválasztásához</span>
+                                        <input type="file" name="pdf" accept="application/pdf,.pdf">
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Mentés</button>
+                                <button type="button" class="btn" data-megse>Mégse</button>
+                            </div>
+                        </form>
                     </div>
-
-                    <form class="sz-edit" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="szamla_mentes">
-                        <input type="hidden" name="pk" value="{{ sz.pk }}">
-                        <div class="fields">
-                            <label>Számlaszám <input name="szamla_szama" value="{{ sz.szamla_szama }}" required></label>
-                            <label>Azonosító <input name="szamla_azonosito" value="{{ sz.szamla_azonosito }}"></label>
-                            <label class="full">Kivitelező <input name="kivitelezo" value="{{ sz.kivitelezo }}" required></label>
-                            <label>Kelte <input type="date" name="szamla_kelte" value="{{ sz.szamla_kelte|date:'Y-m-d' }}"></label>
-                            <label>Adószám <input name="adoszam" value="{{ sz.adoszam }}"></label>
-                            <label>ÁFA <input name="afa" value="{{ sz.afa }}"></label>
-                            <label>Bruttó összeg (Ft) <input type="number" step="any" min="0" name="szamla_brutto_osszege" value="{{ sz.szamla_brutto_osszege|unlocalize }}" required></label>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-sm">Mentés</button>
-                            <button type="button" class="btn btn-sm" data-megse>Mégse</button>
-                        </div>
-                    </form>
-                </div>
+                </details>
                 {% empty %}
-                <p class="empty">Ebben a zsebben még nincs számla.</p>
+                <p class="empty">Ebben a munkafolyamatban még nincs számla.</p>
                 {% endfor %}
+            </section>
 
-                <details class="box">
-                    <summary>Zseb beállításai</summary>
-                    <div class="inner">
+            <!-- 3. Beállítások -->
+            <section class="panel" aria-label="Beállítások">
+                <details class="fold">
+                    <summary>Munkafolyamat beállításai</summary>
+                    <div style="margin-top:14px">
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="zseb_mentes">
                             <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
                             <div class="fields">
                                 <label>Név <input name="nev" value="{{ z.zseb.nev }}" required></label>
-                                <label>Keret (Ft) <input type="number" min="0" name="keret" value="{{ z.zseb.keret|unlocalize }}" required></label>
+                                <label>Keret (Ft) <input type="number" inputmode="numeric" min="0" name="keret" value="{{ z.zseb.keret|unlocalize }}" required></label>
                                 <label>Szín <input type="color" name="szin" value="{{ z.zseb.szin }}"></label>
                             </div>
-                            <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">Mentés</button></div>
+                            <div class="form-actions"><button type="submit" class="btn btn-primary">Mentés</button></div>
                         </form>
 
-                        <div class="form-actions" style="margin-top:18px">
+                        <div class="row-actions" style="margin-top:18px">
                             <form method="post">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="deaktival">
                                 <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
-                                <button type="submit" class="btn btn-sm">Zseb deaktiválása</button>
+                                <button type="submit" class="btn btn-sm">Deaktiválás</button>
                             </form>
-                            <form method="post" data-confirm="Biztosan törlöd a(z) {{ z.zseb.nev }} zsebet? A számlák megmaradnak, de besorolatlanok lesznek.">
+                            <form method="post" data-confirm="Biztosan törlöd a(z) {{ z.zseb.nev }} munkafolyamatot? A számlák megmaradnak, de besorolatlanok lesznek.">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="zseb_torles">
                                 <input type="hidden" name="pk" value="{{ z.zseb.pk }}">
-                                <button type="submit" class="btn btn-sm btn-danger">Zseb törlése</button>
+                                <button type="submit" class="btn btn-sm btn-danger">Törlés</button>
                             </form>
                         </div>
-                        <p class="empty">A deaktiválás csak üres zsebnél lehetséges, a zseb később újra aktiválható.</p>
+                        <p class="empty" style="text-align:left;padding-bottom:0">A deaktiválás csak üres munkafolyamatnál lehetséges, később újra aktiválható.</p>
                     </div>
                 </details>
-            </div>
+            </section>
         </div>
     </dialog>
     {% endfor %}
 
-    <!-- Egyedi zseb -->
+    <!-- Egyedi munkafolyamat -->
     <dialog id="uj-zseb" aria-labelledby="uj-zseb-cim">
-        <div class="dlg">
-            <div class="dlg-head">
-                <h2 id="uj-zseb-cim">Egyedi zseb</h2>
-                <button type="button" data-close aria-label="Bezárás">✕</button>
-            </div>
-            <div class="dlg-body">
+        <div class="dlg-head">
+            <h2 id="uj-zseb-cim">Egyedi munkafolyamat</h2>
+            <button type="button" class="x" data-close aria-label="Bezárás">✕</button>
+        </div>
+        <div class="dlg-body">
+            <section class="panel">
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="uj_zseb">
                     <div class="fields">
                         <label class="full">Név <input name="nev" required></label>
-                        <label>Keret (Ft) <input type="number" min="0" name="keret" value="100000" required></label>
-                        <label>Szín <input type="color" name="szin" value="#1d4ed8"></label>
+                        <label>Keret (Ft) <input type="number" inputmode="numeric" min="0" name="keret" value="100000" required></label>
+                        <label>Szín <input type="color" name="szin" value="#50B748"></label>
                     </div>
-                    <div class="form-actions"><button type="submit" class="btn btn-primary">Zseb létrehozása</button></div>
+                    <div class="form-actions"><button type="submit" class="btn btn-primary">Létrehozás</button></div>
                 </form>
-            </div>
+            </section>
         </div>
     </dialog>
 
+    <!-- Blinky -->
+    <button type="button" class="ai-fab" id="aiFab" aria-expanded="false" aria-controls="aiBox">Kérdezz Blinkytől</button>
+    <section class="ai-box" id="aiBox" aria-label="Házfelújítási asszisztens">
+        <div class="ai-head"><span>Blinky, felújítási segéd</span><button type="button" class="x" id="aiClose" aria-label="Bezárás">✕</button></div>
+        <div class="ai-log" id="aiLog" role="log" aria-live="polite">
+            <div class="ai-msg a">Szia! Kérdezz a házfelújítással kapcsolatban, például anyagokról vagy a munkák sorrendjéről.</div>
+        </div>
+        <div class="ai-note">Az AI tévedhet. Villany, gáz és statika kérdésben kérj szakembert.</div>
+        <form class="ai-form" id="aiForm">
+            {% csrf_token %}
+            <input type="text" id="aiInput" maxlength="600" placeholder="Írd be a kérdésed…" aria-label="Kérdés" required>
+            <button type="submit" class="btn btn-primary btn-sm" id="aiSend">Küldés</button>
+        </form>
+    </section>
+
     <script>
-        // Felugró ablakok (a <dialog> kezeli az Esc-et és a fókuszcsapdát)
+        // Felugró ablakok
         document.querySelectorAll("[data-open]").forEach(el =>
             el.addEventListener("click", () => document.getElementById(el.dataset.open).showModal()));
         document.querySelectorAll("[data-close]").forEach(b =>
@@ -507,27 +779,104 @@
         document.querySelectorAll("dialog").forEach(d =>
             d.addEventListener("click", e => { if (e.target === d) d.close(); }));
 
-        // Számla szerkesztése a helyén, a fókusz az első mezőre kerül
+        // Számla szerkesztése a helyén
         document.querySelectorAll("[data-szerk]").forEach(b =>
             b.addEventListener("click", () => {
-                const sz = b.closest(".sz");
+                const sz = b.closest(".inv");
                 sz.classList.add("editing");
-                sz.querySelector(".sz-edit input:not([type=hidden])").focus();
+                sz.querySelector(".inv-edit input:not([type=hidden])").focus();
             }));
         document.querySelectorAll("[data-megse]").forEach(b =>
-            b.addEventListener("click", () => b.closest(".sz").classList.remove("editing")));
+            b.addEventListener("click", () => b.closest(".inv").classList.remove("editing")));
 
         // Megerősítés törlés előtt
         document.querySelectorAll("form[data-confirm]").forEach(f =>
             f.addEventListener("submit", e => { if (!confirm(f.dataset.confirm)) e.preventDefault(); }));
 
-        // Mentés után ugyanaz a zseb nyílik újra (?zseb=ID)
+        // PDF feltöltő
+        const ALAP = "Érintsd meg a PDF kiválasztásához";
+        document.querySelectorAll(".drop").forEach(zona => {
+            const inp = zona.querySelector("input[type=file]");
+            const nev = zona.querySelector("[data-fname]");
+            function frissit() {
+                const f = inp.files[0];
+                zona.classList.remove("has-file");
+                nev.textContent = ALAP;
+                if (!f) return;
+                if (!(f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"))) {
+                    alert("Csak PDF fájl tölthető fel."); inp.value = ""; return;
+                }
+                if (f.size > 10 * 1024 * 1024) {
+                    alert("A fájl legfeljebb 10 MB lehet."); inp.value = ""; return;
+                }
+                nev.textContent = f.name + " (" + (f.size / 1024 / 1024).toFixed(2) + " MB)";
+                zona.classList.add("has-file");
+            }
+            inp.addEventListener("change", frissit);
+            ["dragenter", "dragover"].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.add("over-drag"); }));
+            ["dragleave", "drop"].forEach(t => zona.addEventListener(t, e => { e.preventDefault(); zona.classList.remove("over-drag"); }));
+            zona.addEventListener("drop", e => {
+                if (e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; frissit(); }
+            });
+        });
+
+        // Mentés után ugyanaz a munkafolyamat nyílik újra (?zseb=ID)
         const zsebId = new URLSearchParams(location.search).get("zseb");
         if (zsebId) {
             const d = document.getElementById("zseb-" + zsebId);
             if (d) d.showModal();
             history.replaceState(null, "", location.pathname);
         }
+
+        // Blinky
+        (function () {
+            const doboz = document.getElementById("aiBox"), fab = document.getElementById("aiFab");
+            const log = document.getElementById("aiLog"), inp = document.getElementById("aiInput");
+            const kuld = document.getElementById("aiSend");
+            const csrf = document.querySelector("#aiForm [name=csrfmiddlewaretoken]").value;
+            const elozmeny = [];
+
+            function nyit(ny) { doboz.classList.toggle("open", ny); fab.setAttribute("aria-expanded", ny); if (ny) inp.focus(); }
+            fab.addEventListener("click", () => nyit(!doboz.classList.contains("open")));
+            document.getElementById("aiClose").addEventListener("click", () => nyit(false));
+
+            function buborek(szerep, szoveg) {
+                const d = document.createElement("div");
+                d.className = "ai-msg " + szerep;
+                d.textContent = szoveg;              // soha nem innerHTML: nincs XSS
+                log.appendChild(d); log.scrollTop = log.scrollHeight;
+                return d;
+            }
+
+            document.getElementById("aiForm").addEventListener("submit", async e => {
+                e.preventDefault();
+                const kerdes = inp.value.trim();
+                if (!kerdes) return;
+                buborek("u", kerdes); inp.value = ""; kuld.disabled = true;
+                const valasz = buborek("a", "…");
+                let teljes = "";
+                try {
+                    const r = await fetch("{% url 'ai_kerdes' %}", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+                        body: JSON.stringify({ kerdes, elozmeny })
+                    });
+                    if (!r.ok) { valasz.textContent = await r.text(); }
+                    else {
+                        const olvaso = r.body.getReader(), dekod = new TextDecoder();
+                        valasz.textContent = "";
+                        while (true) {
+                            const { done, value } = await olvaso.read();
+                            if (done) break;
+                            teljes += dekod.decode(value, { stream: true });
+                            valasz.textContent = teljes; log.scrollTop = log.scrollHeight;
+                        }
+                        elozmeny.push({ role: "user", content: kerdes }, { role: "assistant", content: teljes });
+                    }
+                } catch (err) { valasz.textContent = "Hálózati hiba, próbáld újra."; }
+                kuld.disabled = false; inp.focus();
+            });
+        })();
     </script>
 </body>
 </html>

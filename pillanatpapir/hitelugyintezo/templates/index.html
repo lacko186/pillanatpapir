@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pillanatpapír – Bejelentkezés</title>
+    {% if google_client_id %}<script src="https://accounts.google.com/gsi/client" async defer></script>{% endif %}
+    <style>
+        :root { --ink:#10251a; --muted:#4f6357; --accent:#2e7d32; --accent-d:#256628; --line:#cbd8cd; --danger:#b91c1c; --ok:#166534; }
+        * { box-sizing: border-box; }
+        body { margin:0; min-height:100vh; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink);
+               background: radial-gradient(1200px 600px at 10% -10%, #d9f0dc 0, transparent 60%),
+                           radial-gradient(900px 500px at 110% 110%, #dff3ea 0, transparent 55%), #f7faf8;
+               display:grid; grid-template-columns: 1.1fr 1fr; }
+        .hero { padding: 8vw 6vw; display:flex; flex-direction:column; justify-content:center; }
+        .logo { display:flex; align-items:center; gap:12px; font-size:1.2rem; font-weight:700; margin-bottom:28px; }
+        .logo span { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#4f46e5,#ec4899); display:grid; place-items:center; color:#fff; font-size:1.3rem; }
+        .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em; }
+        .hero h1 em { font-style:normal; background:linear-gradient(90deg,#4f46e5,#ec4899); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .hero p { font-size:1.1rem; color:var(--muted); max-width:34rem; margin:0 0 26px; }
+        .points { list-style:none; padding:0; margin:0; display:grid; gap:10px; color:var(--muted); }
+        .points li::before { content:"✓"; color:var(--accent); font-weight:700; margin-right:10px; }
+
+        .side { display:grid; place-items:center; padding:24px; }
+        .card { width:min(440px,100%); background:#fff; border-radius:22px; padding:28px; box-shadow:0 20px 60px rgba(15,23,42,.14); }
+
+        .tabs { display:grid; grid-template-columns:1fr 1fr; background:#eef2ff; border-radius:14px; padding:5px; margin-bottom:22px; position:relative; }
+        .tabs button { border:none; background:transparent; padding:11px; border-radius:10px; font:inherit; font-weight:600; color:var(--muted); cursor:pointer; min-height:44px; }
+        .tabs button[aria-selected="true"] { background:#fff; color:var(--accent); box-shadow:0 2px 8px rgba(79,70,229,.2); }
+
+        h2 { margin:0 0 4px; font-size:1.4rem; }
+        .sub { margin:0 0 18px; color:var(--muted); font-size:.95rem; }
+        label { display:block; font-size:.88rem; font-weight:600; margin-bottom:14px; }
+        .field { position:relative; margin-top:5px; }
+        input[type=email], input[type=text], input[type=password] { width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; font:inherit; background:#fff; min-height:46px; }
+        input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,70,229,.2); }
+        .eye { position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:none; cursor:pointer; color:var(--muted); font-size:.8rem; padding:8px; min-height:36px; }
+        .row { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.9rem; margin-bottom:16px; flex-wrap:wrap; }
+        .row label { display:flex; gap:8px; align-items:center; font-weight:400; margin:0; }
+        a.link, button.link { color:var(--accent); background:none; border:none; font:inherit; cursor:pointer; padding:0; text-decoration:underline; }
+        .btn { width:100%; border:none; background:var(--accent); color:#fff; padding:13px; border-radius:12px; font:inherit; font-weight:700; cursor:pointer; min-height:48px; }
+        .btn:hover { background:var(--accent-d); }
+        :focus-visible { outline:3px solid #f59e0b; outline-offset:2px; }
+
+        .meter { height:6px; border-radius:99px; background:#e2e8f0; overflow:hidden; margin-top:8px; }
+        .meter i { display:block; height:100%; width:0; background:#dc2626; transition:width .2s, background .2s; }
+        .hint { font-size:.8rem; color:var(--muted); margin-top:5px; }
+
+        .alert { border-radius:12px; padding:11px 14px; margin-bottom:16px; font-size:.92rem; }
+        .alert.err { background:#fee2e2; color:#7f1d1d; }
+        .alert.ok { background:#dcfce7; color:var(--ok); }
+        .alert ul { margin:0; padding-left:18px; }
+
+        .or { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:.85rem; margin:0 0 18px; }
+        .or::before, .or::after { content:""; flex:1; height:1px; background:var(--line); }
+        .gwrap { display:flex; justify-content:center; margin-bottom:18px; min-height:44px; }
+        [hidden] { display:none !important; }
+        @media (max-width: 860px) { body { grid-template-columns:1fr; } .hero { padding:36px 24px 8px; } .points { display:none; } }
+        @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+    </style>
+</head>
+<body>
+    <section class="hero" aria-label="Bemutatkozás">
+        <div class="logo"><span aria-hidden="true">P</span>Pillanatpapír</div>
+        <h1>A házfelújításod számlái, <em>egy pillanat alatt</em> átláthatóan.</h1>
+        <p>Kövesd a kereteket, a kifizetéseket és a folyamatban lévő munkákat egy helyen, munkafolyamatonként rendezve.</p>
+        <ul class="points">
+            <li>Az összes keret és a haladás mindig látható</li>
+            <li>Zsebek burkoláshoz, festéshez és minden más munkához</li>
+            <li>Biztonságos fiók, titkosított jelszóval</li>
+        </ul>
+    </section>
+
+    <main class="side">
+        <div class="card">
+
+            {% if uzenet %}<div class="alert ok" role="status">{{ uzenet }}</div>{% endif %}
+            {% if hibak %}
+            <div class="alert err" role="alert">
+                <ul>{% for h in hibak %}<li>{{ h }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            <div class="tabs" role="tablist" aria-label="Belépés vagy regisztráció" id="tabs">
+                <button type="button" role="tab" id="tab-login" aria-controls="panel-login" aria-selected="true">Bejelentkezés</button>
+                <button type="button" role="tab" id="tab-register" aria-controls="panel-register" aria-selected="false" tabindex="-1">Regisztráció</button>
+            </div>
+
+            {% if google_client_id %}
+            <div id="g_id_onload"
+                 data-client_id="{{ google_client_id }}"
+                 data-login_uri="{{ google_login_uri }}"
+                 data-ux_mode="redirect"
+                 data-auto_prompt="false"></div>
+            <div class="gwrap">
+                <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
+                     data-text="continue_with" data-shape="pill" data-locale="hu" data-width="360"></div>
+            </div>
+            <div class="or">vagy e-mail-címmel</div>
+            {% endif %}
+
+            <!-- Bejelentkezés -->
+            <div id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+                <h2>Üdv újra!</h2>
+                <p class="sub">Jelentkezz be a fiókodba.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="login">
+                    <label>E-mail-cím
+                        <div class="field"><input type="email" name="email" value="{{ urlap.email|default:'' }}" autocomplete="email" required></div>
+                    </label>
+                    <label>Jelszó
+                        <div class="field">
+                            <input type="password" name="password" autocomplete="current-password" required>
+                            <button type="button" class="eye" data-eye>Mutat</button>
+                        </div>
+                    </label>
+                    <div class="row">
+                        <label><input type="checkbox" name="remember" checked> Maradjak bejelentkezve</label>
+                        <button type="button" class="link" data-go="forgot">Elfelejtett jelszó?</button>
+                    </div>
+                    <button type="submit" class="btn">Bejelentkezés</button>
+                </form>
+            </div>
+
+            <!-- Regisztráció -->
+            <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+                <h2>Fiók létrehozása</h2>
+                <p class="sub">Pár másodperc, és kezdhetsz is.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="register">
+                    <label>Név
+                        <div class="field"><input type="text" name="nev" value="{{ urlap.nev|default:'' }}" maxlength="100" autocomplete="name" required></div>
+                    </label>
+                    <label>E-mail-cím
+                        <div class="field"><input type="email" name="email" value="{% if panel == 'register' %}{{ urlap.email|default:'' }}{% endif %}" maxlength="150" autocomplete="email" required></div>
+                    </label>
+                    <label>Jelszó
+                        <div class="field">
+                            <input type="password" name="password1" id="pw1" minlength="8" autocomplete="new-password" required>
+                            <button type="button" class="eye" data-eye>Mutat</button>
+                        </div>
+                        <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+                        <div class="hint" id="meter-text">Legalább 8 karakter, ne legyen túl gyakori jelszó.</div>
+                    </label>
+                    <label>Jelszó újra
+                        <div class="field">
+                            <input type="password" name="password2" autocomplete="new-password" required>
+                        </div>
+                    </label>
+                    <button type="submit" class="btn">Regisztráció</button>
+                </form>
+            </div>
+
+            <!-- Elfelejtett jelszó -->
+            <div id="panel-forgot" role="tabpanel" aria-label="Elfelejtett jelszó" hidden>
+                <h2>Elfelejtett jelszó</h2>
+                <p class="sub">Add meg az e-mail-címedet, és küldünk egy linket az új jelszó beállításához.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="forgot">
+                    <label>E-mail-cím
+                        <div class="field"><input type="email" name="email" autocomplete="email" required></div>
+                    </label>
+                    <button type="submit" class="btn">Link küldése</button>
+                    <p class="row" style="margin:14px 0 0;justify-content:center">
+                        <button type="button" class="link" data-go="login">Vissza a bejelentkezéshez</button>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const panelek = { login: "panel-login", register: "panel-register", forgot: "panel-forgot" };
+        const tabok = { login: document.getElementById("tab-login"), register: document.getElementById("tab-register") };
+
+        function mutat(nev) {
+            for (const [k, id] of Object.entries(panelek)) document.getElementById(id).hidden = (k !== nev);
+            for (const [k, t] of Object.entries(tabok)) {
+                t.setAttribute("aria-selected", k === nev ? "true" : "false");
+                t.tabIndex = k === nev ? 0 : -1;
+            }
+            const elso = document.querySelector("#" + panelek[nev] + " input:not([type=hidden]):not([type=checkbox])");
+            if (elso && document.body.dataset.ready) elso.focus();
+        }
+
+        Object.entries(tabok).forEach(([k, t]) => {
+            t.addEventListener("click", () => mutat(k));
+            t.addEventListener("keydown", e => {   // nyílbillentyűs váltás
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const m = k === "login" ? "register" : "login"; mutat(m); tabok[m].focus(); }
+            });
+        });
+        document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => mutat(b.dataset.go)));
+
+        // Jelszó megjelenítése / elrejtése
+        document.querySelectorAll("[data-eye]").forEach(b => b.addEventListener("click", () => {
+            const inp = b.parentElement.querySelector("input");
+            const lathato = inp.type === "password";
+            inp.type = lathato ? "text" : "password";
+            b.textContent = lathato ? "Elrejt" : "Mutat";
+        }));
+
+        // Jelszóerősség-jelző
+        const pw = document.getElementById("pw1"), meter = document.getElementById("meter"), txt = document.getElementById("meter-text");
+        pw.addEventListener("input", () => {
+            const v = pw.value;
+            let s = 0;
+            if (v.length >= 8) s++;
+            if (v.length >= 12) s++;
+            if (/[a-záéíóöőúüű]/.test(v) && /[A-ZÁÉÍÓÖŐÚÜŰ]/.test(v)) s++;
+            if (/\d/.test(v)) s++;
+            if (/[^A-Za-z0-9]/.test(v)) s++;
+            const szint = [["0%", "#dc2626", ""], ["25%", "#dc2626", "Gyenge"], ["50%", "#f59e0b", "Közepes"],
+                           ["75%", "#65a30d", "Jó"], ["100%", "#16a34a", "Erős"], ["100%", "#16a34a", "Nagyon erős"]][v ? Math.max(1, s) : 0];
+            meter.style.width = szint[0]; meter.style.background = szint[1];
+            txt.textContent = szint[2] ? "Jelszó erőssége: " + szint[2] : "Legalább 8 karakter, ne legyen túl gyakori jelszó.";
+        });
+
+        mutat("{{ panel }}");
+        document.body.dataset.ready = "1";
+    </script>
+</body>
+</html>
